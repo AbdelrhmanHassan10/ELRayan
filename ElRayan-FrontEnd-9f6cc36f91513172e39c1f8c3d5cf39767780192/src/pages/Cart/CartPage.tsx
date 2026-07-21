@@ -1,0 +1,221 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Trash2, Plus, Minus, ShoppingBag, Tag, X, ArrowLeft } from 'lucide-react'
+import { useCart } from '../../contexts/CartContext'
+import toast from 'react-hot-toast'
+
+export default function CartPage() {
+  const { cart, isLoading, updateItem, removeItem, clearCart, applyCoupon, removeCoupon } = useCart()
+  const navigate = useNavigate()
+  const [couponCode, setCouponCode] = useState('')
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!cart || cart.items?.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div className="text-6xl mb-4">🛒</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">سلتك فارغة</h2>
+        <p className="text-gray-400 mb-6">أضف بعض المنتجات للبدء!</p>
+        <Link to="/shop" className="btn-primary inline-flex items-center gap-2">
+          <ShoppingBag className="w-4 h-4" /> تصفح المنتجات
+        </Link>
+      </div>
+    )
+  }
+
+  const items = cart.items ?? []
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setApplyingCoupon(true)
+    try {
+      await applyCoupon(couponCode.trim())
+      setCouponCode('')
+      toast.success('تم تطبيق الكوبون!')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'كوبون غير صالح')
+    } finally {
+      setApplyingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = async () => {
+    try {
+      await removeCoupon()
+      toast.success('تم إزالة الكوبون')
+    } catch {
+      toast.error('فشل إزالة الكوبون')
+    }
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">سلة التسوق</h1>
+        <button
+          onClick={() => { clearCart(); toast.success('تم مسح السلة') }}
+          className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
+        >
+          <Trash2 className="w-4 h-4" /> مسح السلة
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Items list */}
+        <div className="lg:col-span-2 space-y-4">
+          {items.map(item => {
+            const finalPrice = item.discount > 0
+              ? (item.discountType === 'percentage'
+                ? item.unitPrice - (item.unitPrice * item.discount) / 100
+                : item.unitPrice - item.discount)
+              : item.unitPrice
+            const mainImage = item.productImages?.[0]
+
+            return (
+              <div key={item.id} className="card p-4 flex gap-4">
+                <Link to={`/product/${item.productId}`} className="shrink-0">
+                  <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden">
+                    {mainImage ? (
+                      <img
+                        src={mainImage}
+                        alt={item.productName}
+                        className="w-full h-full object-cover"
+                        onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300">
+                        <ShoppingBag className="w-8 h-8" />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link to={`/product/${item.productId}`} className="font-medium text-gray-900 hover:text-primary transition-colors line-clamp-2 text-sm">
+                      {item.productName}
+                    </Link>
+                    <button
+                      onClick={() => removeItem(item.id).then(() => toast.success('تم الإزالة من السلة')).catch(() => toast.error('فشل'))}
+                      className="shrink-0 p-1 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {!item.inStock && (
+                    <p className="text-xs text-red-500 mt-1">نفذ المخزون</p>
+                  )}
+
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => item.quantity > 1 ? updateItem(item.id, item.quantity - 1) : removeItem(item.id)}
+                        className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                      <span className="px-3 py-1.5 font-semibold text-gray-900 text-sm min-w-[32px] text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => updateItem(item.id, item.quantity + 1)}
+                        className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-gray-600" />
+                      </button>
+                    </div>
+
+                    <div className="text-end">
+                      <p className="font-bold text-gray-900">{(finalPrice * item.quantity).toFixed(2)} ج.م</p>
+                      {item.quantity > 1 && (
+                        <p className="text-xs text-gray-400">{finalPrice.toFixed(2)} للوحدة</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Order summary */}
+        <div className="space-y-4">
+          <div className="card p-5">
+            <h2 className="font-bold text-gray-900 mb-4">ملخص الطلب</h2>
+
+            <div className="space-y-2 text-sm mb-4">
+              <div className="flex justify-between text-gray-600">
+                <span>المجموع الجزئي ({cart.itemsCount} منتج)</span>
+                <span>{cart.subtotal.toFixed(2)} ج.م</span>
+              </div>
+              {cart.discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>الخصم</span>
+                  <span>-{cart.discountAmount.toFixed(2)} ج.م</span>
+                </div>
+              )}
+              <div className="flex justify-between text-gray-600">
+                <span>الشحن</span>
+                <span>{cart.shippingAmount > 0 ? `${cart.shippingAmount.toFixed(2)} ج.م` : 'يحسب عند الدفع'}</span>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-3 mb-4">
+              <div className="flex justify-between font-bold text-gray-900">
+                <span>الإجمالي</span>
+                <span>{cart.total.toFixed(2)} ج.م</span>
+              </div>
+            </div>
+
+            {/* Coupon */}
+            {cart.coupon ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">{cart.coupon.code}</span>
+                </div>
+                <button onClick={handleRemoveCoupon} className="text-green-400 hover:text-red-500 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mb-4">
+                <input
+                  value={couponCode}
+                  onChange={e => setCouponCode(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                  placeholder="كود الكوبون"
+                  className="input flex-1 py-2 text-sm"
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={applyingCoupon || !couponCode.trim()}
+                  className="px-4 py-2 bg-dark text-white text-sm rounded-lg hover:bg-dark-light transition-colors disabled:opacity-50 shrink-0"
+                >
+                  تطبيق
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={() => navigate('/checkout')}
+              className="w-full btn-primary flex items-center justify-center gap-2 py-3"
+            >
+              إتمام الطلب <ArrowLeft className="w-4 h-4 rotate-180" />
+            </button>
+            <Link to="/shop" className="block text-center text-sm text-primary hover:underline mt-3">
+              مواصلة التسوق
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

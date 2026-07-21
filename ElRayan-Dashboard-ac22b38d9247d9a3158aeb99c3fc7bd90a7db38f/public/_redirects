@@ -1,0 +1,73 @@
+/*    /index.html   200
+
+
+{
+  "ar": [
+    {
+      "title": "تحديثات سياسة الخصوصية وسريانها",
+      "content": "قد تتغير سياسة خصوصية \"برد\" لتعكس الممارسات الجديدة أو المتطلبات القانونية. من المهم مراجعتها بانتظام وفهم كيفية جمع معلوماتك الشخصية واستخدامها وحمايتها. سيكون لدينا دائماً أحدث إصدار من سياسة الخصوصية الخاصة بنا على منصة \"برد\". ستكون التغييرات سارية فور نشرها، ورغم أننا قد نرسل تذكيرات عبر البريد الإلكتروني حول التحديثات الهامة، فإننا ننصحك بزيارة منصتنا بشكل دوري للحصول على أحدث المعلومات."
+    },
+    {
+      "title": "البيانات التي نقوم بجمعها",
+      "content": "نقوم بجمع المعلومات من عملائنا والتي تشمل: الاسم، عنوان البريد الإلكتروني، رقم الهاتف، وعنوان الشحن. بالإضافة إلى معلومات الجهاز مثل عنوان IP، نوع المتصفح، نظام التشغيل، وبيانات الاستخدام مثل الصفحات التي تزورها على التطبيق والمنتجات التي تشاهدها أو تشتريها."
+    },
+    {
+      "title": "الغرض من جمع البيانات",
+      "content": "نقوم بجمع هذه المعلومات من أجل: إنشاء وإدارة حسابات المستخدمين، معالجة الطلبات، إرسال رسائل البريد الإلكتروني التسويقية، تحسين النظام الأساسي، توفير دعم المستخدمين، مكافحة الاحتيال وإساءة الاستخدام، والامتثال للقوانين واللوائح المعمول بها."
+    },
+    {
+      "title": "مشاركة البيانات مع الأطراف الثالثة",
+      "content": "نحن نشارك فقط الاسم وعنوان الشحن ورقم الهاتف مع شركة خارجية تقدم خدمة التوصيل وتتعامل مع الخدمات اللوجستية. لن نبيع أو نؤجر معلوماتك الشخصية لأطراف ثالثة دون موافقتك."
+    },
+    {
+      "title": "الموافقة ومراجعة السياسة",
+      "content": "من المهم مراجعة سياسة الخصوصية بانتظام. يشير استمرار استخدامك للمنصة إلى موافقتك على أي تغييرات يتم إجراؤها على السياسة."
+    },
+    {
+      "title": "التواصل والشكاوى",
+      "content": "إذا كانت لديك أي أسئلة أو مخاوف بشأن سياسة خصوصية \"برد\" أو ممارسات معالجة البيانات، أو إذا كنت ترغب في الإبلاغ عن انتهاك محتمل لقوانين الخصوصية المحلية، فيرجى الاتصال بنا على +971501751571."
+    },
+    {
+      "title": "الاستجابة ومعالجة المشكلات",
+      "content": "نهدف إلى الرد على الاستفسارات المهمة في غضون سبعة أيام عمل. سيتناول ردنا المشكلة المثارة، أو يطلب معلومات إضافية إذا لزم الأمر، أو يخطرك إذا كانت الاستجابة الشاملة تتطلب مزيداً من الوقت. نحن نأخذ مخاوف الخصوصية على محمل الجد. إذا كانت لديك أي مشكلات متعلقة بالخصوصية، سنتخذ إجراءً فورياً لمعالجتها، ويشمل ذلك تنفيذ التحسينات اللازمة والتخفيف من أي آثار سلبية على الأفراد."
+    },
+    {
+      "title": "الحق في التحديث وإشعارات المستخدمين",
+      "content": "تحتفظ \"برد\" بالحق في تحديث الشروط والأحكام وسياسة الخصوصية الخاصة بها لتتماشى مع الممارسات التجارية المتطورة والمتطلبات القانونية. سيتم إخطار المستخدمين بهذه التحديثات من خلال تطبيق \"برد\" والموقع الإلكتروني. يمكن أيضاً إرسال الإشعارات عبر البريد الإلكتروني أو من خلال الإشعارات داخل التطبيق. ثقتك تهمنا، ونحن ملتزمون بحماية خصوصيتك. شكراً لاختيارك \"برد\"."
+    }
+  ],
+  "en": [
+    {
+      "title": "Privacy Policy Updates and Effectiveness",
+      "content": "\"BARAD's\" privacy policy may change to reflect new practices or legal requirements. It is important to review it regularly to understand how your personal information is collected, used, and protected. We will always have the latest version of our privacy policy on the \"BARAD\" platform. Changes will be effective immediately upon posting. Although we may send email reminders about significant updates, we recommend visiting our platform periodically for the latest information."
+    },
+    {
+      "title": "Information We Collect",
+      "content": "We collect information from our customers, including: Name, email address, phone number, and shipping address. We also collect device information such as IP address, browser type, operating system, and usage data like the pages you visit on the app and the products you view or purchase."
+    },
+    {
+      "title": "Purpose of Data Collection",
+      "content": "We collect this information to: Create and manage user accounts, process orders, send marketing emails, improve the platform, provide user support, combat fraud and misuse, and comply with applicable laws and regulations."
+    },
+    {
+      "title": "Data Sharing with Third Parties",
+      "content": "We only share the Name, Shipping Address, and Phone Number with an external company that provides delivery services and handles logistics. We will not sell or rent your personal information to third parties without your consent."
+    },
+    {
+      "title": "Consent and Policy Review",
+      "content": "It is important to review the privacy policy regularly. Your continued use of the platform indicates your agreement to any changes made to the policy."
+    },
+    {
+      "title": "Contact and Complaints",
+      "content": "If you have any questions or concerns regarding \"BARAD's\" privacy policy or data processing practices, or if you wish to report a potential violation of local privacy laws, please contact us at +971501751571."
+    },
+    {
+      "title": "Response and Issue Resolution",
+      "content": "We aim to respond to significant inquiries within seven business days. Our response will address the issue raised, request additional information if necessary, or notify you if a comprehensive response requires more time. We take privacy concerns seriously. If you have any privacy-related issues, we will take immediate action to address them, including implementing necessary improvements and mitigating any negative effects on individuals."
+    },
+    {
+      "title": "Right to Update and User Notifications",
+      "content": "\"BARAD\" reserves the right to update its Terms and Conditions and Privacy Policy to align with evolving business practices and legal requirements. Users will be notified of these updates through the \"BARAD\" app and website. Notifications may also be sent via email or through in-app notifications. Your trust matters to us, and we are committed to protecting your privacy. Thank you for choosing \"BARAD\"."
+    }
+  ]
+}

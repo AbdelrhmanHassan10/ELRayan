@@ -1,0 +1,7 @@
+admin@gmail.com
+12345678
+
+//api
+https://api.elrayan.acwad.tech/api/docs
+
+#e3010f
