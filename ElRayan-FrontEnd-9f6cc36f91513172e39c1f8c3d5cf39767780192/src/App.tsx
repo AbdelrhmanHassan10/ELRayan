@@ -22,10 +22,14 @@ import NotificationsPage from './pages/Notifications/NotificationsPage'
 import CouponsPage from './pages/Coupons/CouponsPage'
 import SpinWheelPage from './pages/SpinWheel/SpinWheelPage'
 import ComplaintsPage from './pages/Complaints/ComplaintsPage'
+import RecommendedPage from './pages/Special/RecommendedPage'
+import OffersPage from './pages/Special/OffersPage'
+import ScrollToTop from './components/ScrollToTop'
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Auth routes (no navbar/footer) */}
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
@@ -37,6 +41,8 @@ function App() {
         {/* Main layout routes */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
         <Route path="/shop" element={<Layout><ShopPage /></Layout>} />
+        <Route path="/recommended" element={<Layout><RecommendedPage /></Layout>} />
+        <Route path="/offers" element={<Layout><OffersPage /></Layout>} />
         <Route path="/product/:id" element={<Layout><ProductDetailPage /></Layout>} />
 
         {/* Protected routes */}
@@ -57,9 +63,9 @@ function App() {
           <Layout>
             <div className="min-h-[400px] flex flex-col items-center justify-center gap-4 text-center p-8">
               <div className="text-6xl">🔍</div>
-              <h1 className="text-3xl font-bold text-gray-900">404 - Page Not Found</h1>
-              <p className="text-gray-400">The page you're looking for doesn't exist.</p>
-              <a href="/" className="btn-primary">Back to Home</a>
+              <h1 className="text-3xl font-bold text-gray-900">404 - الصفحة غير موجودة</h1>
+              <p className="text-gray-400">الصفحة التي تبحث عنها غير موجودة.</p>
+              <a href="/" className="btn-primary">العودة للرئيسية</a>
             </div>
           </Layout>
         } />

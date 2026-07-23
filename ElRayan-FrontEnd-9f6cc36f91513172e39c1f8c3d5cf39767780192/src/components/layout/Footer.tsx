@@ -36,8 +36,8 @@ export default function Footer() {
               {[
                 { to: '/', label: 'الرئيسية' },
                 { to: '/shop', label: 'المتجر' },
-                { to: '/shop?recommended=true', label: 'المنتجات المميزة' },
-                { to: '/shop?discounted=true', label: 'العروض والتخفيضات' },
+                { to: '/recommended', label: 'المنتجات المميزة' },
+                { to: '/offers', label: 'العروض والتخفيضات' },
                 { to: '/spin-wheel', label: 'عجلة الحظ' },
               ].map(link => (
                 <li key={link.to}>

@@ -8,6 +8,9 @@ export const reviewsApi = {
   getStats: () =>
     api.get<ApiResponse<ReviewStats>>('/reviews/stats'),
 
+  getById: (id: number) =>
+    api.get<ApiResponse<Review>>(`/reviews/${id}`),
+
   create: (data: CreateReviewPayload) =>
     api.post<ApiResponse<Review>>('/reviews', data),
 

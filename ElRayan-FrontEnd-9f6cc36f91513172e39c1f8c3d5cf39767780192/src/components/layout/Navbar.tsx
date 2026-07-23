@@ -37,8 +37,8 @@ export default function Navbar() {
   const navLinks = [
     { to: '/', label: 'الرئيسية' },
     { to: '/shop', label: 'المتجر' },
-    { to: '/shop?recommended=true', label: 'مميز' },
-    { to: '/shop?discounted=true', label: 'العروض' },
+    { to: '/recommended', label: 'مميز' },
+    { to: '/offers', label: 'العروض' },
   ]
 
   return (

@@ -17,8 +17,16 @@ export default function CouponsPage() {
     queryFn: () => couponsApi.getActive(),
   })
 
-  const myCoupons = (myData?.data?.data ?? []) as any[]
-  const activeCoupons = (activeData?.data?.data ?? []) as any[]
+  const extractCoupons = (res: any) => {
+    const data = res?.data?.data;
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (data.data && Array.isArray(data.data)) return data.data;
+    return [];
+  };
+
+  const myCoupons = extractCoupons(myData);
+  const activeCoupons = extractCoupons(activeData);
 
   const allCoupons = [...myCoupons, ...activeCoupons].filter(
     (c, idx, arr) => arr.findIndex(x => x.id === c.id) === idx

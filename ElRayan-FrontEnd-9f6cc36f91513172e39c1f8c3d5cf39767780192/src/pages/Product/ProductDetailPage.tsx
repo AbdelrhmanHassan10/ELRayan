@@ -95,13 +95,14 @@ export default function ProductDetailPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Images */}
-        <div className="space-y-4">
-          <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden border border-gray-100">
+        <div className="flex flex-col h-full gap-4">
+          <div className="flex-1 min-h-[300px] bg-white rounded-2xl overflow-hidden border border-gray-100 flex items-center justify-center p-4">
             {product.images?.[selectedImage]?.attach ? (
               <img
                 src={product.images[selectedImage].attach}
                 alt={String(name)}
-                className="w-full h-full object-contain p-4"
+                className="max-w-full max-h-full object-contain"
+                style={{ maxHeight: 'calc(100vh - 300px)' }}
                 onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
               />
             ) : (
@@ -111,7 +112,7 @@ export default function ProductDetailPage() {
             )}
           </div>
           {product.images?.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 mt-auto">
               {product.images.map((img: any, idx: number) => (
                 <button
                   key={img.id}
@@ -153,21 +154,18 @@ export default function ProductDetailPage() {
               <>
                 <span className="text-lg text-gray-400 line-through">{product.price.toFixed(2)}</span>
                 <span className="badge bg-primary text-white">
-                  {product.discount_type === 'percentage' ? `-${product.discount}%` : `-${product.discount} ج.م`}
+                  {product.discount_type === 'percentage' ? `خصم ${product.discount}%` : `خصم ${product.discount} ج.م.`}
                 </span>
               </>
             )}
           </div>
 
-          {/* Stock */}
-          <div className="flex items-center gap-2">
+          {/* Stock Availability */}
+          <div className="flex items-center gap-2 mb-4">
             <div className={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-green-500' : 'bg-red-400'}`} />
             <span className={`text-sm font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {product.stock > 0 ? `${product.stock} في المخزون` : 'نفذ المخزون'}
+              {product.stock > 0 ? 'متوفر في المخزون' : 'نفذ المخزون'}
             </span>
-            {product.sold > 0 && (
-              <span className="text-sm text-gray-400 ms-2">• {product.sold} مُباع</span>
-            )}
           </div>
 
           {/* Unit */}

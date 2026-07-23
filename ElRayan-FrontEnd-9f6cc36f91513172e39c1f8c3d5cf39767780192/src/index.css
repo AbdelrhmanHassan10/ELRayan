@@ -12,13 +12,16 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 font-sans;
-    font-family: 'Inter', 'Cairo', sans-serif;
+    @apply text-gray-900 font-sans;
+    background-color: #f9fafb;
+    background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+    font-family: 'Cairo', sans-serif;
   }
 
   :lang(ar) {
     direction: rtl;
-    font-family: 'Cairo', 'Inter', sans-serif;
+    font-family: 'Cairo', sans-serif;
   }
 }
 
