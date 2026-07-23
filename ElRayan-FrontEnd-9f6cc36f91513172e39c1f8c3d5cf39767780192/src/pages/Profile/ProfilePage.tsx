@@ -59,14 +59,34 @@ export default function ProfilePage() {
     }
   }
 
-  const onPasswordSave = async (data: { currentPassword: string; newPassword: string }) => {
+  const onPasswordSave = async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
     setSaving(true)
     try {
-      await authApi.changePassword({ currentPassword: data.currentPassword, newPassword: data.newPassword })
+      const payload = { 
+        currentPassword: data.currentPassword, 
+        newPassword: data.newPassword,
+      };
+      await authApi.changePassword(payload as any)
       resetPwd()
       toast.success('تم تغيير كلمة المرور بنجاح!')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'فشل تغيير كلمة المرور')
+      console.error('Password Edit Error:', e?.response?.data);
+      const resData = e?.response?.data;
+      let msg = resData?.message ?? 'فشل تغيير كلمة المرور';
+      
+      if (resData?.errors && Array.isArray(resData.errors)) {
+        msg = resData.errors.map((err: any) => {
+          if (typeof err === 'string') return err;
+          if (err.constraints) return Object.values(err.constraints).join(' و ');
+          if (err.message) return err.message;
+          if (err.msg) return err.msg;
+          return JSON.stringify(err);
+        }).join(' | ');
+      } else if (resData?.errors) {
+        msg = Object.values(resData.errors).flat().join(' | ');
+      }
+      
+      toast.error(msg)
     } finally {
       setSaving(false)
     }

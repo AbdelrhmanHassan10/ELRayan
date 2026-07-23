@@ -88,7 +88,7 @@ export default function ProductCard({ product, onFavoriteToggle }: ProductCardPr
               src={mainImage}
               alt={name}
               loading="lazy"
-              className="max-w-full max-h-full object-contain group-hover:scale-110 group-hover:-rotate-2 transition-transform duration-300 ease-out"
+              className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300 ease-out"
               onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
             />
           ) : (

@@ -18,7 +18,7 @@ export const cartApi = {
     api.delete<void>('/cart/clear'),
 
   applyCoupon: (code: string) =>
-    api.post<Cart>('/cart/coupon', { code }),
+    api.post<Cart>('/cart/coupon', { couponCode: code }),
 
   removeCoupon: () =>
     api.delete<Cart>('/cart/coupon'),

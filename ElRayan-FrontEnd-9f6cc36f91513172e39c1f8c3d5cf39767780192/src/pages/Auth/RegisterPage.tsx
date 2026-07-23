@@ -119,7 +119,7 @@ export default function RegisterPage() {
                 <input
                   {...register('password', {
                     required: 'كلمة المرور مطلوبة',
-                    minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' },
+                    minLength: { value: 8, message: 'الحد الأدنى 8 أحرف أو أرقام' },
                     maxLength: { value: 128, message: 'الحد الأقصى 128 حرفاً' },
                   })}
                   type={showPass ? 'text' : 'password'}

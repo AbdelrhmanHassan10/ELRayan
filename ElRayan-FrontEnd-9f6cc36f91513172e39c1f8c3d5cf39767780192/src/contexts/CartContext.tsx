@@ -59,19 +59,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const applyCoupon = async (code: string) => {
-    const res = await cartApi.applyCoupon(code)
-    setCart(res.data)
+    await cartApi.applyCoupon(code)
+    await fetchCart()
   }
 
   const removeCoupon = async () => {
-    const res = await cartApi.removeCoupon()
-    setCart(res.data)
+    await cartApi.removeCoupon()
+    await fetchCart()
   }
 
   const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0
 
   return (
-    <CartContext.Provider value={{ cart, isLoading, cartCount, fetchCart, addItem, updateItem, removeItem, clearCart, applyCoupon, removeCoupon }}>
+    <CartContext.Provider value={{
+        cart, isLoading, cartCount,
+        fetchCart, addItem, updateItem, removeItem, clearCart, applyCoupon, removeCoupon
+      }}
+    >
       {children}
     </CartContext.Provider>
   )

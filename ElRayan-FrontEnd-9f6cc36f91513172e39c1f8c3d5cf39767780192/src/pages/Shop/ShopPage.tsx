@@ -9,6 +9,28 @@ import Pagination from '../../components/Pagination'
 import { ProductSkeleton } from '../../components/Skeleton'
 import { resolveName } from '../../utils/localize'
 
+function normList(raw: any): any[] {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw
+  if (Array.isArray(raw.data)) return raw.data
+  if (Array.isArray(raw.items)) return raw.items
+  if (raw.data && Array.isArray(raw.data.data)) return raw.data.data
+  if (raw.data && Array.isArray(raw.data.items)) return raw.data.items
+  return []
+}
+
+function normMeta(raw: any) {
+  if (!raw) return undefined
+  const meta = raw.metadata || raw.meta || (raw.data && raw.data.metadata) || (raw.data && raw.data.meta) || raw
+  if (!meta) return undefined
+  return {
+    total: meta.totalItems ?? meta.total ?? 0,
+    totalPages: meta.totalPages ?? meta.last_page ?? 1,
+    page: meta.currentPage ?? meta.current_page ?? 1,
+    limit: meta.itemsPerPage ?? meta.per_page ?? 20,
+  }
+}
+
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [showFilters, setShowFilters] = useState(false)
@@ -45,21 +67,11 @@ export default function ShopPage() {
     queryFn: () => categoriesApi.getAllSubCategories(),
   })
 
-  // Products API: data.items + data.metadata
-  const products = data?.data?.data?.items ?? []
-  const metadata = data?.data?.data?.metadata
-  const meta = metadata ? {
-    total: metadata.totalItems,
-    totalPages: metadata.totalPages,
-    page: metadata.currentPage,
-    limit: metadata.itemsPerPage,
-  } : undefined
+  const products = normList(data?.data?.data || data?.data)
+  const meta = normMeta(data?.data?.data || data?.data)
 
-  // Categories: normalise (may be array or {data:[]} shape)
-  const rawCats = categoriesRes?.data?.data
-  const categories: any[] = Array.isArray(rawCats) ? rawCats : (rawCats as any)?.data ?? []
-  const rawSubCats = subCatsRes?.data?.data
-  const subCats: any[] = Array.isArray(rawSubCats) ? rawSubCats : (rawSubCats as any)?.data ?? []
+  const categories = normList(categoriesRes?.data?.data || categoriesRes?.data)
+  const subCats = normList(subCatsRes?.data?.data || subCatsRes?.data)
 
   const filteredSubCats = filters.categoryId
     ? subCats.filter(sc => sc.main_category_id === filters.categoryId)

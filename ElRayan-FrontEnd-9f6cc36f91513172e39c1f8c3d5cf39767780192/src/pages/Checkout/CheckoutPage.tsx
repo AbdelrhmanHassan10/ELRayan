@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { MapPin, CreditCard, FileText, CheckCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -11,9 +11,6 @@ import toast from 'react-hot-toast'
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] = [
   { value: 'cash_on_delivery', label: 'الدفع عند الاستلام', icon: '💵' },
-  { value: 'credit_card', label: 'بطاقة ائتمانية', icon: '💳' },
-  { value: 'debit_card', label: 'بطاقة مدى', icon: '💳' },
-  { value: 'bank_transfer', label: 'تحويل بنكي', icon: '🏦' },
 ]
 
 export default function CheckoutPage() {
@@ -29,35 +26,45 @@ export default function CheckoutPage() {
     queryKey: ['addresses'],
     queryFn: () => addressesApi.getAll(),
   })
-  const addresses = addressRes?.data?.data ?? []
+  const addressList: any = addressRes?.data?.data
+  const addresses: any[] = Array.isArray(addressList) ? addressList : (addressList?.data ?? [])
 
   if (!cart || cart.items?.length === 0) {
-    navigate('/cart')
-    return null
+    return <Navigate to="/cart" replace />
   }
 
   const items = cart.items ?? []
 
   const defaultAddr = addresses.find((a: any) => a.isDefault)
-  const shipping = selectedAddress
+  const shippingRaw = selectedAddress
     ? addresses.find((a: any) => a.id === selectedAddress)?.zone?.shippingCost ?? cart.shippingAmount
     : defaultAddr?.zone?.shippingCost ?? cart.shippingAmount
+  const shipping = Number(shippingRaw || 0)
+
+  const cartSubtotal = Number(cart.subtotal || 0)
+  const cartDiscount = Number(cart.discountAmount || 0)
 
   const couponDiscount = cart.coupon
     ? (cart.coupon.discountType === 'percentage'
-      ? Math.min(cart.subtotal * cart.coupon.discountValue / 100, cart.coupon.maxDiscountAmount ?? Infinity)
-      : cart.coupon.discountValue)
-    : cart.discountAmount
+      ? Math.min(cartSubtotal * Number(cart.coupon.discountValue || 0) / 100, cart.coupon.maxDiscountAmount ?? Infinity)
+      : Number(cart.coupon.discountValue || 0))
+    : cartDiscount
 
-  const total = cart.subtotalWithDiscount + shipping
+  const subtotalWithDiscount = Number(cart.subtotalWithDiscount ?? cart.subtotal ?? 0)
+  const total = subtotalWithDiscount + shipping
 
   const onSubmit = async (data: { phone1: string; phone2?: string; notes?: string }) => {
     setPlacing(true)
     try {
-      const payload: CreateOrderPayload = {
-        shippingAddress: { phone1: data.phone1, phone2: data.phone2 },
+      const payload: any = {
         paymentMethod,
         notes: data.notes,
+      }
+      
+      if (selectedAddress) {
+        payload.addressId = selectedAddress
+      } else {
+        payload.shippingAddress = { phone1: data.phone1, phone2: data.phone2 }
       }
       const res = await ordersApi.create(payload)
       await fetchCart()
@@ -83,7 +90,7 @@ export default function CheckoutPage() {
                 <MapPin className="w-5 h-5 text-primary" /> تفاصيل الشحن
               </h2>
 
-              {addresses.length > 0 && (
+              {addresses.length > 0 ? (
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">اختر عنواناً محفوظاً:</p>
                   <div className="space-y-2">
@@ -96,31 +103,61 @@ export default function CheckoutPage() {
                           checked={selectedAddress === addr.id || (!selectedAddress && addr.isDefault)}
                           onChange={() => setSelectedAddress(addr.id)}
                         />
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-gray-900">{addr.title || addr.type}</p>
-                          {addr.description && <p className="text-xs text-gray-400 mt-0.5">{addr.description}</p>}
+                          {addr.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{addr.description}</p>}
                           {addr.zone && <p className="text-xs text-primary mt-0.5">الشحن: {addr.zone.shippingCost} ج.م</p>}
-                          {addr.isDefault && <span className="badge bg-green-100 text-green-700 mt-1">الافتراضي</span>}
+                          {addr.isDefault && <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full mt-1">الافتراضي</span>}
                         </div>
                       </label>
                     ))}
                   </div>
+                  {!addresses.some((a: any) => a.isDefault) && (
+                    <div className="mt-3 p-3 bg-primary/5 text-primary-700 rounded-lg text-sm border border-primary/20 flex items-center gap-2 font-medium">
+                      <span className="text-lg">⚠️</span> يرجى تعيين عنوان افتراضي من صفحة العناوين لإتمام الطلب.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl mb-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <p className="font-bold text-gray-900 mb-2">لا يوجد عنوان للتوصيل!</p>
+                  <p className="text-sm text-gray-600 mb-5">يجب إضافة عنوان شحن واحد على الأقل لإتمام الطلب بنجاح.</p>
+                  <a href="/addresses" className="inline-block w-full sm:w-auto px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary-600 transition-all hover:-translate-y-0.5 shadow-lg shadow-primary/20">إضافة عنوان جديد</a>
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">هاتف 1 *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف الأساسي *</label>
                   <input
-                    {...register('phone1', { required: 'رقم الهاتف مطلوب' })}
-                    placeholder="+966 XXX XXX XXXX"
+                    {...register('phone1', { 
+                      required: 'رقم الهاتف مطلوب',
+                      pattern: {
+                        value: /^01[0125][0-9]{8}$/,
+                        message: 'يجب أن يكون رقم مصري صحيح (11 رقم يبدأ بـ 01)'
+                      }
+                    })}
+                    placeholder="01XXXXXXXXX"
                     className="input"
                   />
                   {errors.phone1 && <p className="text-xs text-red-500 mt-1">{errors.phone1.message}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">هاتف 2 (اختياري)</label>
-                  <input {...register('phone2')} placeholder="+966 XXX XXX XXXX" className="input" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">رقم هاتف احتياطي (اختياري)</label>
+                  <input 
+                    {...register('phone2', {
+                      pattern: {
+                        value: /^01[0125][0-9]{8}$/,
+                        message: 'يجب أن يكون رقم مصري صحيح'
+                      }
+                    })} 
+                    placeholder="01XXXXXXXXX" 
+                    className="input" 
+                  />
+                  {errors.phone2 && <p className="text-xs text-red-500 mt-1">{errors.phone2.message}</p>}
                 </div>
               </div>
             </div>
@@ -130,7 +167,7 @@ export default function CheckoutPage() {
               <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-primary" /> طريقة الدفع
               </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {PAYMENT_METHODS.map(pm => (
                   <label key={pm.value} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === pm.value ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
                     <input type="radio" name="payment" className="text-primary" checked={paymentMethod === pm.value} onChange={() => setPaymentMethod(pm.value)} />
@@ -172,7 +209,7 @@ export default function CheckoutPage() {
                       <p className="text-xs font-medium text-gray-700 truncate">{item.productName}</p>
                       <p className="text-xs text-gray-400">×{item.quantity}</p>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">{item.totalPriceWithDiscount.toFixed(2)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{Number(item.totalPriceWithDiscount || item.totalPrice || 0).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -180,7 +217,7 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 pt-3 space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>المجموع الجزئي</span>
-                  <span>{cart.subtotal.toFixed(2)} ج.م</span>
+                  <span>{cartSubtotal.toFixed(2)} ج.م</span>
                 </div>
                 {couponDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
@@ -200,8 +237,8 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={placing}
-                className="w-full btn-primary flex items-center justify-center gap-2 py-3 mt-4"
+                disabled={placing || addresses.length === 0 || !addresses.some((a: any) => a.isDefault)}
+                className="w-full btn-primary flex items-center justify-center gap-2 py-3 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {placing ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

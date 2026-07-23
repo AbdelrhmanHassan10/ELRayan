@@ -21,11 +21,9 @@ export default function Footer() {
               وجهتك الموثوقة للمنتجات الجودة. تسوق بثقة واطمئنان.
             </p>
             <div className="flex gap-3 mt-4">
-              {[Facebook, Instagram, Twitter].map((Icon, i) => (
-                <a key={i} href="#" className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
+              <a href="https://www.facebook.com/share/1Bey7fquaa/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
+                <Facebook className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
@@ -74,17 +72,17 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">تواصل معنا</h3>
             <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <Phone className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>+966 XX XXX XXXX</span>
+              <li className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-primary shrink-0" />
+                <span dir="ltr">01001279745</span>
               </li>
-              <li className="flex items-start gap-2">
-                <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>support@alrayan.com</span>
+              <li className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary shrink-0" />
+                <span>marketalrayan1@gmail.com</span>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>الرياض، المملكة العربية السعودية</span>
+                <span>بني سويف - الفشن - شارع طريق المستشفي - امام مسجد الحداد</span>
               </li>
             </ul>
           </div>

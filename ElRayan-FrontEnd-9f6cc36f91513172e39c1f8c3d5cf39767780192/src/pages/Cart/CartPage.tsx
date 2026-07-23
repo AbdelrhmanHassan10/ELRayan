@@ -41,9 +41,27 @@ export default function CartPage() {
     try {
       await applyCoupon(couponCode.trim())
       setCouponCode('')
-      toast.success('تم تطبيق الكوبون!')
+      toast.success('تم تطبيق الكوبون بنجاح!')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'كوبون غير صالح')
+      const data = e?.response?.data;
+      let errMsg = data?.message || 'كوبون غير صالح';
+      
+      if (data?.errors) {
+        if (typeof data.errors === 'string') {
+          errMsg = data.errors;
+        } else if (Array.isArray(data.errors) && data.errors.length > 0) {
+          errMsg = data.errors[0].msg || data.errors[0];
+        } else if (typeof data.errors === 'object') {
+          const firstKey = Object.keys(data.errors)[0];
+          if (firstKey && data.errors[firstKey]) {
+            errMsg = Array.isArray(data.errors[firstKey]) ? data.errors[firstKey][0] : data.errors[firstKey];
+          }
+        }
+      } else if (data?.error) {
+        errMsg = typeof data.error === 'string' ? data.error : data.error.message || errMsg;
+      }
+      
+      toast.error(errMsg)
     } finally {
       setApplyingCoupon(false)
     }
@@ -154,25 +172,25 @@ export default function CartPage() {
 
             <div className="space-y-2 text-sm mb-4">
               <div className="flex justify-between text-gray-600">
-                <span>المجموع الجزئي ({cart.itemsCount} منتج)</span>
-                <span>{cart.subtotal.toFixed(2)} ج.م</span>
+                <span>المجموع الجزئي ({cart.itemsCount || 0} منتج)</span>
+                <span>{(cart.subtotal || 0).toFixed(2)} ج.م</span>
               </div>
-              {cart.discountAmount > 0 && (
+              {(cart.discountAmount || 0) > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>الخصم</span>
-                  <span>-{cart.discountAmount.toFixed(2)} ج.م</span>
+                  <span>-{(cart.discountAmount || 0).toFixed(2)} ج.م</span>
                 </div>
               )}
               <div className="flex justify-between text-gray-600">
                 <span>الشحن</span>
-                <span>{cart.shippingAmount > 0 ? `${cart.shippingAmount.toFixed(2)} ج.م` : 'يحسب عند الدفع'}</span>
+                <span>{(cart.shippingAmount || 0) > 0 ? `${(cart.shippingAmount || 0).toFixed(2)} ج.م` : 'يحسب عند الدفع'}</span>
               </div>
             </div>
 
             <div className="border-t border-gray-100 pt-3 mb-4">
               <div className="flex justify-between font-bold text-gray-900">
                 <span>الإجمالي</span>
-                <span>{cart.total.toFixed(2)} ج.م</span>
+                <span>{(cart.total || 0).toFixed(2)} ج.م</span>
               </div>
             </div>
 

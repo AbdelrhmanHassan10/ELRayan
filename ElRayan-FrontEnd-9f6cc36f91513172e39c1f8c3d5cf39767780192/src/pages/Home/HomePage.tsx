@@ -14,11 +14,13 @@ import { ProductSkeleton } from '../../components/Skeleton'
 import FadeIn from '../../components/FadeIn'
 import { resolveName } from '../../utils/localize'
 
-function normCats(raw: any): any[] {
+function normList(raw: any): any[] {
   if (!raw) return []
   if (Array.isArray(raw)) return raw
   if (Array.isArray(raw.data)) return raw.data
   if (Array.isArray(raw.items)) return raw.items
+  if (raw.data && Array.isArray(raw.data.data)) return raw.data.data
+  if (raw.data && Array.isArray(raw.data.items)) return raw.data.items
   return []
 }
 
@@ -48,18 +50,16 @@ export default function HomePage() {
     queryFn: () => categoriesApi.getAll(),
   })
 
-  // Banners: API returns data as Banner[] directly
-  const banners = bannerRes?.data?.data
-    ? (Array.isArray(bannerRes.data.data) ? bannerRes.data.data : [])
-    : []
+  // Banners
+  const banners = normList(bannerRes?.data?.data)
 
-  // Products: API returns data.items
-  const featured = featuredRes?.data?.data?.items ?? []
-  const newest = newRes?.data?.data?.items ?? []
-  const onSale = saleRes?.data?.data?.items ?? []
+  // Products
+  const featured = normList(featuredRes?.data?.data)
+  const newest = normList(newRes?.data?.data)
+  const onSale = normList(saleRes?.data?.data)
 
-  // Categories: normalise
-  const categories = normCats(categoriesRes?.data?.data)
+  // Categories
+  const categories = normList(categoriesRes?.data?.data)
 
   return (
     <div>
@@ -215,7 +215,7 @@ export default function HomePage() {
               الكل <ChevronRight className="w-4 h-4 md:w-5 md:h-5 rotate-180" />
             </Link>
           </div>
-          <div className="flex gap-4 md:gap-8 overflow-x-auto pb-6 pt-2 px-2 -mx-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex gap-4 md:gap-8 overflow-x-auto overflow-y-hidden py-4 snap-x snap-mandatory hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {categories.map((cat: any, idx: number) => {
               const catName = resolveName(cat.name) || 'فئة'
               return (

@@ -85,7 +85,7 @@ export default function LoginPage() {
               </div>
               <div className="relative">
                 <input
-                  {...register('password', { required: 'مطلوب', minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' } })}
+                  {...register('password', { required: 'مطلوب', minLength: { value: 8, message: 'الحد الأدنى 8 أحرف أو أرقام' } })}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   className="input pl-10"
