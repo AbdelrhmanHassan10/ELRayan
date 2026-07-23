@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Trash2, Plus, Minus, ShoppingBag, Tag, X, ArrowLeft } from 'lucide-react'
 import { useCart } from '../../contexts/CartContext'
 import toast from 'react-hot-toast'
+import ConfirmModal from '../../components/ConfirmModal'
 
 export default function CartPage() {
   const { cart, isLoading, updateItem, removeItem, clearCart, applyCoupon, removeCoupon } = useCart()
   const navigate = useNavigate()
   const [couponCode, setCouponCode] = useState('')
   const [applyingCoupon, setApplyingCoupon] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   if (isLoading) {
     return (
@@ -61,7 +63,7 @@ export default function CartPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">سلة التسوق</h1>
         <button
-          onClick={() => { clearCart(); toast.success('تم مسح السلة') }}
+          onClick={() => setShowClearConfirm(true)}
           className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
         >
           <Trash2 className="w-4 h-4" /> مسح السلة
@@ -216,6 +218,18 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showClearConfirm}
+        title="مسح السلة"
+        message="هل أنت متأكد من رغبتك في مسح جميع المنتجات من السلة؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="نعم، امسح السلة"
+        onConfirm={() => {
+          clearCart()
+          toast.success('تم مسح السلة')
+        }}
+        onClose={() => setShowClearConfirm(false)}
+      />
     </div>
   )
 }

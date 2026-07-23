@@ -26,17 +26,27 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true)
     try {
+      let phone = data.phoneNumber;
+      if (phone && phone.startsWith('01') && phone.length === 11) {
+        phone = '+20' + phone.substring(1);
+      } else if (phone && !phone.startsWith('+')) {
+        phone = '+' + phone;
+      }
+
       await authApi.signUp({
         email: data.email,
         fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
+        phoneNumber: phone,
         password: data.password,
         playerId: 'web-' + Date.now(),
       })
       toast.success('تم إنشاء الحساب! يرجى تفعيل بريدك الإلكتروني.')
       navigate('/verify-otp', { state: { email: data.email } })
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'فشل إنشاء الحساب')
+      console.error('Register Error:', e?.response?.data);
+      const resData = e?.response?.data;
+      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل إنشاء الحساب');
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
@@ -85,8 +95,22 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف (اختياري)</label>
-              <input {...register('phoneNumber')} type="tel" autoComplete="off" name="phone" placeholder="+966 XXX XXX XXXX" className="input" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف *</label>
+              <input
+                {...register('phoneNumber', {
+                  required: 'رقم الهاتف مطلوب',
+                  pattern: {
+                    value: /^(010|011|012|015)\d{8}$/,
+                    message: 'يجب أن يكون رقم مصري صحيح (مثال: 01012345678)'
+                  }
+                })}
+                type="tel"
+                autoComplete="off"
+                placeholder="01X XXXX XXXX"
+                className="input text-left"
+                dir="ltr"
+              />
+              {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber.message}</p>}
             </div>
 
             <div>
@@ -100,11 +124,12 @@ export default function RegisterPage() {
                   })}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="input pe-10"
+                  className="input pl-10"
                   autoComplete="new-password"
+                  dir="ltr"
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

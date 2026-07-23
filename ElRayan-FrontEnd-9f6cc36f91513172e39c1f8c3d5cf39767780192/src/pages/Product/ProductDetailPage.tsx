@@ -192,9 +192,9 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Quantity + Add to cart */}
-          {product.stock > 0 && (
-            <div className="space-y-3">
+          {/* Actions */}
+          <div className="space-y-3">
+            {product.stock > 0 && (
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-gray-700">الكمية:</span>
                 <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
@@ -213,8 +213,10 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
               </div>
+            )}
 
-              <div className="flex gap-3">
+            <div className="flex gap-3">
+              {product.stock > 0 ? (
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
@@ -225,21 +227,20 @@ export default function ProductDetailPage() {
                     : <><ShoppingCart className="w-5 h-5" /> أضف للسلة</>
                   }
                 </button>
-                <button
-                  onClick={handleFavorite}
-                  className={`p-3 border-2 rounded-lg transition-colors ${isFav ? 'border-primary bg-primary text-white' : 'border-gray-200 text-gray-400 hover:border-primary hover:text-primary'}`}
-                >
-                  <Heart className="w-5 h-5" fill={isFav ? 'currentColor' : 'none'} />
-                </button>
-              </div>
+              ) : (
+                <div className="flex-1 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium text-center flex items-center justify-center">
+                  المنتج غير متوفر حالياً.
+                </div>
+              )}
+              
+              <button
+                onClick={handleFavorite}
+                className={`p-3 border-2 rounded-lg transition-colors ${isFav ? 'border-primary bg-primary text-white' : 'border-gray-200 text-gray-400 hover:border-primary hover:text-primary'}`}
+              >
+                <Heart className="w-5 h-5" fill={isFav ? 'currentColor' : 'none'} />
+              </button>
             </div>
-          )}
-
-          {product.stock === 0 && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium">
-              المنتج غير متوفر حالياً.
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

@@ -24,6 +24,7 @@ import SpinWheelPage from './pages/SpinWheel/SpinWheelPage'
 import ComplaintsPage from './pages/Complaints/ComplaintsPage'
 import RecommendedPage from './pages/Special/RecommendedPage'
 import OffersPage from './pages/Special/OffersPage'
+import NewArrivalsPage from './pages/Special/NewArrivalsPage'
 import ScrollToTop from './components/ScrollToTop'
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
         <Route path="/shop" element={<Layout><ShopPage /></Layout>} />
         <Route path="/recommended" element={<Layout><RecommendedPage /></Layout>} />
         <Route path="/offers" element={<Layout><OffersPage /></Layout>} />
+        <Route path="/new-arrivals" element={<Layout><NewArrivalsPage /></Layout>} />
         <Route path="/product/:id" element={<Layout><ProductDetailPage /></Layout>} />
 
         {/* Protected routes */}

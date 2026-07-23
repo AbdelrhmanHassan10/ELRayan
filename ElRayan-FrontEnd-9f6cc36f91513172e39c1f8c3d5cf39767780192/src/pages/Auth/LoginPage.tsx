@@ -20,13 +20,23 @@ export default function LoginPage() {
   const onSubmit = async (data: { identifier: string; password: string }) => {
     setLoading(true)
     try {
-      const res = await authApi.login({ ...data, playerId: 'web-' + Date.now() })
+      let id = data.identifier;
+      if (id && id.startsWith('01') && id.length === 11 && /^\d+$/.test(id)) {
+        id = '+20' + id.substring(1);
+      } else if (id && id.startsWith('0') && !id.includes('@')) {
+        // Fallback for non-egyptian generic phones without +
+        id = '+' + id;
+      }
+
+      const res = await authApi.login({ ...data, identifier: id, playerId: 'web-' + Date.now() })
       const { accessToken } = res.data.data
       await login(accessToken)
       toast.success('أهلاً بعودتك!')
       navigate('/')
     } catch (e: any) {
-      const msg = e?.response?.data?.message ?? 'فشل تسجيل الدخول'
+      console.error('Login Error:', e?.response?.data);
+      const resData = e?.response?.data;
+      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل تسجيل الدخول');
       toast.error(msg)
       if (e?.response?.status === 403) {
         navigate('/verify-otp', { state: { email: data.identifier } })
@@ -78,11 +88,12 @@ export default function LoginPage() {
                   {...register('password', { required: 'مطلوب', minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' } })}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
-                  className="input pe-10"
+                  className="input pl-10"
                   autoComplete="current-password"
+                  dir="ltr"
                 />
                 <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>

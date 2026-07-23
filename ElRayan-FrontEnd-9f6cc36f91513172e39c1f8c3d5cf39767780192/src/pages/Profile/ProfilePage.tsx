@@ -32,15 +32,28 @@ export default function ProfilePage() {
   const onProfileSave = async (data: { fullName: string; phoneNumber: string; gender: string }) => {
     setSaving(true)
     try {
-      await authApi.editProfile({
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber || undefined,
-        gender: (data.gender as 'male' | 'female') || undefined,
-      })
+      let phone = data.phoneNumber;
+      if (phone && phone.startsWith('01') && phone.length === 11) {
+        phone = '+20' + phone.substring(1);
+      } else if (phone && !phone.startsWith('+')) {
+        phone = '+' + phone;
+      }
+
+      const payload: any = { fullName: data.fullName };
+      // NOTE: Backend currently rejects `phoneNumber` and `gender`.
+      // Uncomment these once the backend DTO is updated to accept them.
+      // if (phone) payload.phoneNumber = phone; 
+      // if (data.gender) payload.gender = data.gender;
+
+      await authApi.editProfile(payload)
+      
       await refreshUser()
       toast.success('تم تحديث الملف الشخصي!')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'فشل تحديث الملف الشخصي')
+      console.error('Profile Edit Error:', e?.response?.data);
+      const resData = e?.response?.data;
+      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل تحديث الملف الشخصي');
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -108,10 +121,10 @@ export default function ProfilePage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">الاسم الكامل</label>
             <div className="relative">
-              <User className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 {...regProfile('fullName', { required: 'مطلوب', maxLength: { value: 200, message: 'الحد الأقصى 200 حرف' } })}
-                className="input ps-9"
+                className="input pr-9"
                 placeholder="اسمك الكامل"
               />
             </div>
@@ -121,17 +134,29 @@ export default function ProfilePage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني</label>
             <div className="relative">
-              <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input value={user?.email ?? ''} disabled className="input ps-9 bg-gray-50 cursor-not-allowed" />
+              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input value={user?.email ?? ''} disabled className="input pr-9 bg-gray-50 cursor-not-allowed" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
             <div className="relative">
-              <Phone className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input {...regProfile('phoneNumber')} className="input ps-9" placeholder="+966 XXX XXX XXXX" />
+              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                {...regProfile('phoneNumber', {
+                  required: 'رقم الهاتف مطلوب',
+                  pattern: {
+                    value: /^(010|011|012|015)\d{8}$/,
+                    message: 'رقم هاتف مصري غير صالح (مثال: 01012345678)'
+                  }
+                })}
+                className="input pr-9 text-left"
+                dir="ltr"
+                placeholder="01X XXXX XXXX"
+              />
             </div>
+            {errProfile.phoneNumber && <p className="text-xs text-red-500 mt-1">{errProfile.phoneNumber.message}</p>}
           </div>
 
           <div>
@@ -163,11 +188,12 @@ export default function ProfilePage() {
               <input
                 {...regPwd('currentPassword', { required: 'مطلوب' })}
                 type={showOld ? 'text' : 'password'}
-                className="input pe-10"
+                className="input pl-10"
                 placeholder="••••••••"
+                dir="ltr"
               />
               <button type="button" onClick={() => setShowOld(v => !v)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400">
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -180,11 +206,12 @@ export default function ProfilePage() {
               <input
                 {...regPwd('newPassword', { required: 'مطلوب', minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' } })}
                 type={showNew ? 'text' : 'password'}
-                className="input pe-10"
+                className="input pl-10"
                 placeholder="••••••••"
+                dir="ltr"
               />
               <button type="button" onClick={() => setShowNew(v => !v)}
-                className="absolute end-3 top-1/2 -translate-y-1/2 text-gray-400">
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -201,6 +228,7 @@ export default function ProfilePage() {
               type="password"
               className="input"
               placeholder="••••••••"
+              dir="ltr"
             />
             {errPwd.confirmPassword && <p className="text-xs text-red-500 mt-1">{errPwd.confirmPassword.message}</p>}
           </div>

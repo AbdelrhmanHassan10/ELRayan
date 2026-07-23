@@ -8,7 +8,7 @@ interface FadeInProps {
   duration?: number
   className?: string
 }
-
+  
 export default function FadeIn({
   children,
   delay = 0,
@@ -23,7 +23,6 @@ export default function FadeIn({
     right: { x: -40, y: 0 },
     none: { x: 0, y: 0 },
   }
-
   return (
     <motion.div
       initial={{

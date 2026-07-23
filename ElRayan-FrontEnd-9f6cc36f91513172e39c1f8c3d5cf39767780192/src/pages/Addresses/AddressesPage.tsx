@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { addressesApi } from '../../api/addresses'
 import type { CreateAddressPayload, AddressType } from '../../types'
 import toast from 'react-hot-toast'
+import ConfirmModal from '../../components/ConfirmModal'
 import 'leaflet/dist/leaflet.css'
 
 const ADDRESS_TYPE_LABELS: Record<AddressType, string> = {
@@ -131,6 +132,7 @@ export default function AddressesPage() {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [coordsError, setCoordsError] = useState(false)
 
@@ -335,7 +337,7 @@ export default function AddressesPage() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => deleteMutation.mutate(addr.id)}
+                  onClick={() => setDeleteId(addr.id)}
                   disabled={deleteMutation.isPending}
                   className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
                 >
@@ -346,6 +348,17 @@ export default function AddressesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteId !== null}
+        title="حذف العنوان"
+        message="هل أنت متأكد من رغبتك في حذف هذا العنوان نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="نعم، احذف العنوان"
+        onConfirm={() => {
+          if (deleteId) deleteMutation.mutate(deleteId)
+        }}
+        onClose={() => setDeleteId(null)}
+      />
     </div>
   )
 }

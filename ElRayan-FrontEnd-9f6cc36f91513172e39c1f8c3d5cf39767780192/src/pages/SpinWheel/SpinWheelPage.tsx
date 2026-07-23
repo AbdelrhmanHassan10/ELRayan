@@ -22,25 +22,48 @@ export default function SpinWheelPage() {
   })
   const rewards = rewardsRes?.data?.data ?? []
 
+  const segments = rewards.length > 0 ? rewards : Array.from({ length: 8 }, (_, i) => ({ id: i, displayText: `جائزة ${i + 1}` }))
+  const segmentAngle = 360 / segments.length
+
   const spinMutation = useMutation({
     mutationFn: () => rewardsApi.spin(),
     onSuccess: (res) => {
       const spinResult = res.data.data
-      // Spin 5 full rotations + random ending
-      const extraRotation = Math.floor(Math.random() * 360)
-      const totalRotation = rotation + 360 * 5 + extraRotation
+      
+      // Find the winning segment
+      const winIndex = segments.findIndex((s: any) => s.id === spinResult.reward.id)
+      const actualWinIndex = winIndex >= 0 ? winIndex : 0
+
+      // Calculate target rotation to land on the winning segment
+      const randomOffset = (Math.random() - 0.5) * (segmentAngle * 0.7)
+      const targetRotation = 360 - (actualWinIndex * segmentAngle + segmentAngle / 2) + randomOffset
+
+      // Calculate total rotation from current rotation
+      const currentMod = rotation % 360
+      let diff = targetRotation - currentMod
+      if (diff < 0) diff += 360
+
+      const totalRotation = rotation + 360 * 5 + diff // 5 full spins + diff
       setRotation(totalRotation)
+
       setTimeout(() => {
         setSpinning(false)
         setResult(spinResult)
         if (spinResult.reward.type !== 'no_reward') {
-          toast.success(spinResult.message || 'You won a reward!')
+          toast.success(spinResult.message || 'لقد فزت بجائزة!')
         }
       }, 3500)
     },
     onError: (e: any) => {
       setSpinning(false)
-      toast.error(e?.response?.data?.message ?? 'Cannot spin right now')
+      const errMsg = e?.response?.data?.message || 'لا يمكنك الدوران الآن'
+      
+      // Translate known backend errors to Arabic for better UX
+      if (errMsg.toLowerCase().includes('no spin attempts')) {
+        toast.error('لقد استنفذت محاولات الدوران المتاحة لك اليوم')
+      } else {
+        toast.error(errMsg)
+      }
     },
   })
 
@@ -51,17 +74,14 @@ export default function SpinWheelPage() {
     spinMutation.mutate()
   }
 
-  const segments = rewards.length > 0 ? rewards : Array.from({ length: 8 }, (_, i) => ({ id: i, displayText: `Prize ${i + 1}` }))
-  const segmentAngle = 360 / segments.length
-
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
-          <Gift className="w-4 h-4" /> Daily Spin Wheel
+          <Gift className="w-4 h-4" /> عجلة الحظ اليومية
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Try Your Luck!</h1>
-        <p className="text-gray-400 mt-2">Spin to win amazing discounts and rewards</p>
+        <h1 className="text-3xl font-bold text-gray-900">جرب حظك!</h1>
+        <p className="text-gray-400 mt-2">لف العجلة واربح خصومات وجوائز مذهلة</p>
       </div>
 
       {/* Wheel */}
@@ -81,7 +101,7 @@ export default function SpinWheelPage() {
             }}
           >
             <svg viewBox="0 0 200 200" className="w-full h-full">
-              {segments.map((seg, idx) => {
+              {segments.map((seg: any, idx: number) => {
                 const startAngle = idx * segmentAngle - 90
                 const endAngle = (idx + 1) * segmentAngle - 90
                 const startRad = (startAngle * Math.PI) / 180
@@ -94,8 +114,8 @@ export default function SpinWheelPage() {
                 const tx = 100 + 65 * Math.cos(midAngle)
                 const ty = 100 + 65 * Math.sin(midAngle)
 
-                const label = (seg as any).displayText ?? `${idx + 1}`
-                const shortLabel = label.length > 10 ? label.slice(0, 9) + '…' : label
+                const label = seg.displayText ?? `جائزة ${idx + 1}`
+                const shortLabel = label.length > 15 ? label.slice(0, 14) + '…' : label
 
                 return (
                   <g key={seg.id ?? idx}>
@@ -132,7 +152,7 @@ export default function SpinWheelPage() {
           className="btn-primary flex items-center gap-2 px-8 py-4 text-lg font-bold rounded-2xl shadow-lg shadow-primary/30 disabled:opacity-50"
         >
           <RotateCcw className={`w-5 h-5 ${spinning ? 'animate-spin' : ''}`} />
-          {spinning ? 'Spinning...' : 'SPIN!'}
+          {spinning ? 'جاري الدوران...' : 'لف العجلة!'}
         </button>
 
         {/* Result */}
@@ -147,12 +167,12 @@ export default function SpinWheelPage() {
             )}
             {result.coupon && (
               <div className="mt-3 bg-primary/5 border border-primary/20 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-1">Your coupon code:</p>
+                <p className="text-sm text-gray-500 mb-1">كود الكوبون الخاص بك:</p>
                 <div className="flex items-center justify-center gap-2">
                   <span className="text-xl font-mono font-bold text-primary tracking-wider">{result.coupon.code}</span>
                   <button
-                    onClick={() => { navigator.clipboard.writeText(result.coupon!.code); toast.success('Copied!') }}
-                    className="text-primary"
+                    onClick={() => { navigator.clipboard.writeText(result.coupon!.code); toast.success('تم النسخ!') }}
+                    className="text-primary hover:text-primary-600 transition-colors"
                   >
                     📋
                   </button>
@@ -168,9 +188,9 @@ export default function SpinWheelPage() {
         {/* Available prizes */}
         {rewards.length > 0 && (
           <div className="w-full">
-            <h2 className="font-bold text-gray-900 mb-3">Available Prizes</h2>
+            <h2 className="font-bold text-gray-900 mb-3">الجوائز المتاحة</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {rewards.map((r, idx) => (
+              {rewards.map((r: any, idx: number) => (
                 <div key={r.id} className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ background: COLORS[idx % COLORS.length] }} />
                   <span className="text-xs text-gray-600 font-medium truncate">{r.displayText}</span>
