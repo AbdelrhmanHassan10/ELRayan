@@ -47,18 +47,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-              <rect width="100" height="100" rx="16" fill="#1A1F2E"/>
-              <path d="M20 45 L35 45 L35 38 C35 32 38 28 44 26 L56 26 C62 28 65 32 65 38 L65 45 L80 45 L75 72 C74 76 71 78 67 78 L33 78 C29 78 26 76 25 72 Z" stroke="#C8102E" strokeWidth="5" fill="none" strokeLinejoin="round"/>
-              <path d="M42 50 L47 56 L58 44" stroke="white" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="40" cy="84" r="5" fill="#C8102E"/>
-              <circle cx="60" cy="84" r="5" fill="#C8102E"/>
-            </svg>
-            <div className="flex flex-col leading-tight">
-              <span className="text-white font-bold text-lg tracking-tight">Al Rayan</span>
-              <span className="text-primary text-xs font-medium tracking-wider">الريان</span>
-            </div>
+          <Link to="/" className="flex items-center shrink-0">
+            <img src="/logo.png" alt="Al Rayan - الريان" className="h-12 w-auto object-contain" />
           </Link>
 
           {/* Desktop nav links */}

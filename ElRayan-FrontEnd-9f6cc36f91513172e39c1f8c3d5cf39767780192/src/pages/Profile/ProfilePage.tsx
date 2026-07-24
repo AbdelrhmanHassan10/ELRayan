@@ -224,7 +224,7 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور الجديدة</label>
             <div className="relative">
               <input
-                {...regPwd('newPassword', { required: 'مطلوب', minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' } })}
+                {...regPwd('newPassword', { required: 'مطلوب', minLength: { value: 8, message: 'الحد الأدنى 8 أحرف' } })}
                 type={showNew ? 'text' : 'password'}
                 className="input pl-10"
                 placeholder="••••••••"

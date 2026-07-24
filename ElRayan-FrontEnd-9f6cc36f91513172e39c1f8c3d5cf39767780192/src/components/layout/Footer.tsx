@@ -8,14 +8,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="font-bold text-white text-lg leading-tight">متجر الريان</p>
-                <p className="text-primary text-xs">Al Rayan</p>
-              </div>
+            <div className="mb-4">
+              <img src="/logo.png" alt="Al Rayan" className="h-14 w-auto object-contain" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               وجهتك الموثوقة للمنتجات الجودة. تسوق بثقة واطمئنان.

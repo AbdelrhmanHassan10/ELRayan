@@ -20,6 +20,8 @@ export default function ResetPasswordPage() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetForm>()
   const newPassword = watch('newPassword')
 
+  const [resending, setResending] = useState(false)
+
   const onSubmit = async (data: ResetForm) => {
     setLoading(true)
     try {
@@ -27,9 +29,26 @@ export default function ResetPasswordPage() {
       toast.success('تم إعادة تعيين كلمة المرور بنجاح!')
       navigate('/login')
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? 'فشل إعادة تعيين كلمة المرور')
+      const resData = e?.response?.data;
+      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل إعادة تعيين كلمة المرور');
+      toast.error(msg)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    if (!email) return
+    setResending(true)
+    try {
+      await authApi.forgetPassword({ email })
+      toast.success('تم إرسال رمز جديد إلى بريدك الإلكتروني')
+    } catch (e: any) {
+      const resData = e?.response?.data;
+      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل إرسال الرمز');
+      toast.error(msg)
+    } finally {
+      setResending(false)
     }
   }
 
@@ -37,10 +56,8 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-gradient-to-br from-dark via-dark-light to-[#1a0a0e] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <ShoppingBag className="w-8 h-8 text-white" />
-            </div>
+          <Link to="/" className="inline-block">
+            <img src="/logo.png" alt="Al Rayan" className="h-24 w-auto mx-auto object-contain" />
           </Link>
         </div>
 
@@ -70,7 +87,7 @@ export default function ResetPasswordPage() {
                 <input
                   {...register('newPassword', {
                     required: 'مطلوب',
-                    minLength: { value: 6, message: 'الحد الأدنى 6 أحرف' },
+                    minLength: { value: 8, message: 'الحد الأدنى 8 أحرف' },
                   })}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
@@ -110,7 +127,18 @@ export default function ResetPasswordPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
+          <p className="text-center text-sm text-gray-400 mt-4">
+            لم تستلم الرمز؟{' '}
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="text-primary font-medium hover:underline disabled:opacity-50"
+            >
+              {resending ? 'جاري الإرسال...' : 'إعادة الإرسال'}
+            </button>
+          </p>
+
+          <p className="text-center text-sm text-gray-400 mt-4">
             <Link to="/login" className="text-primary font-medium hover:underline">→ العودة لتسجيل الدخول</Link>
           </p>
         </div>

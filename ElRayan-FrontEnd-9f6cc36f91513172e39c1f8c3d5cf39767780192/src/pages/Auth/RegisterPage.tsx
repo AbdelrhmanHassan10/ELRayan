@@ -56,14 +56,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-dark via-dark-light to-[#1a0a0e] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex flex-col items-center gap-2">
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <ShoppingBag className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-2xl">Al Rayan</p>
-              <p className="text-primary text-sm font-medium">متجر الريان</p>
-            </div>
+          <Link to="/" className="inline-block">
+            <img src="/logo.png" alt="Al Rayan" className="h-24 w-auto mx-auto object-contain" />
           </Link>
         </div>
 
