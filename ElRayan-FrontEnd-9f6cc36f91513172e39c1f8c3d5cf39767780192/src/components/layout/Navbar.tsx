@@ -57,11 +57,10 @@ export default function Navbar() {
               <Link
                 key={link.to}
                 to={link.to}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                  location.pathname === link.to && !link.to.includes('?')
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${location.pathname === link.to && !link.to.includes('?')
                     ? 'text-primary bg-white/5'
                     : 'text-gray-300 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 {link.label}
               </Link>

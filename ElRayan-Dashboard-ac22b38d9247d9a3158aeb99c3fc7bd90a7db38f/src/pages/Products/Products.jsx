@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../Api/Api";
 import {
   Table,
   Button,
@@ -17,7 +17,7 @@ const { Title } = Typography;
 import { useTranslation } from "react-i18next";
 
 export default function Products() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [products, setProducts] = useState([]);
   const [meta, setMeta] = useState({});
   const [loading, setLoading] = useState(false);
@@ -34,13 +34,7 @@ export default function Products() {
   const [selectedMain, setSelectedMain] = useState("");
   const [selectedSub, setSelectedSub] = useState("");
 
-  const language = localStorage.getItem("i18nextLng") || "en";
-  const token = localStorage.getItem("token");
-
-  const api = axios.create({
-    baseURL: "https://api.elrayan.acwad.tech/api/v1",
-    headers: { Authorization: `Bearer ${token}`, lang: "en" },
-  });
+  const language = i18n.language || "en";
 
   // ===========================
   // Fetch Products
@@ -111,9 +105,7 @@ export default function Products() {
   useEffect(() => {
     const fetchMain = async () => {
       try {
-        const res = await api.get("/category", {
-          headers: { lang: "en" },
-        });
+        const res = await api.get("/category");
         if (res.data.success) setMainCategories(res.data.data);
       } catch (e) {
         console.log(e);
@@ -122,7 +114,6 @@ export default function Products() {
     fetchMain();
   }, []);
 
-  console.log(mainCategories);
   // ===========================
   // Fetch Sub Categories
   // =========================
@@ -131,10 +122,7 @@ export default function Products() {
     const fetchSubs = async () => {
       try {
         const res = await api.get(
-          `/sub-categories?main_category=${selectedMain}`,
-          {
-            headers: { lang: "en" },
-          },
+          `/sub-categories?main_category=${selectedMain}`
         );
         if (res.data.success) setSubCategories(res.data.data);
       } catch (e) {
@@ -275,7 +263,7 @@ export default function Products() {
             }}
             options={mainCategories.map((c) => ({
               value: c.id,
-              label: c.name.en,
+              label: language === "ar" ? (c.name?.ar || c.name?.en) : (c.name?.en || c.name?.ar),
             }))}
           />
         </div>
@@ -292,7 +280,7 @@ export default function Products() {
             onChange={(value) => setSelectedSub(value)}
             options={subCategories.map((s) => ({
               value: s.id,
-              label: s.name.en,
+              label: language === "ar" ? (s.name?.ar || s.name?.en) : (s.name?.en || s.name?.ar),
             }))}
           />
         </div>
@@ -387,12 +375,12 @@ export default function Products() {
                 ))}
               </div>
             )}
-            <h2>{selectedProduct.name.en}</h2>
-            <p>{selectedProduct.description.en}</p>
+            <h2>{language === "ar" ? (selectedProduct.name?.ar || selectedProduct.name?.en) : (selectedProduct.name?.en || selectedProduct.name?.ar)}</h2>
+            <p>{language === "ar" ? (selectedProduct.description?.ar || selectedProduct.description?.en) : (selectedProduct.description?.en || selectedProduct.description?.ar)}</p>
 
             <p>
               <strong>{t("products.price")}:</strong>{" "}
-              {selectedProduct.price_after_discount} EGP
+              {selectedProduct.price_after_discount} {language === "ar" ? "ج.م" : "EGP"}
             </p>
 
             <p>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../Api/Api";
 import { Form, Input, InputNumber, Select, Switch, Button, Spin, Upload } from "antd";
 import { Plus, Save } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
@@ -11,7 +11,8 @@ import { useTranslation } from "react-i18next";
 const { Option } = Select;
 
 const AddProduct = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language || "en";
     const [form] = Form.useForm();
     const [categories, setCategories] = useState([]);
     const [subCategories, setSubCategories] = useState([]);
@@ -30,11 +31,11 @@ const AddProduct = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const res = await axios.get("https://api.elrayan.acwad.tech/api/v1/category", { headers });
+                const res = await api.get("/category");
                 setCategories(res.data.data);
             } catch (error) {
                 console.error(error);
-                toast.error("Failed to load categories"); // Leaving this as is for now or translate if common error
+                toast.error(t("categories.fetch_fail") || "Failed to load categories");
             } finally {
                 setLoading(false);
             }
@@ -45,11 +46,11 @@ const AddProduct = () => {
     const handleMainCategoryChange = async (value) => {
         form.setFieldsValue({ sub_category_id: null });
         try {
-            const res = await axios.get(`https://api.elrayan.acwad.tech/api/v1/sub-categories?main_category=${value}`, { headers });
+            const res = await api.get(`/sub-categories?main_category=${value}`);
             setSubCategories(res.data.data);
         } catch (error) {
             console.error(error);
-            toast.error("Failed to load subcategories");
+            toast.error(t("categories.fetch_fail") || "Failed to load subcategories");
         }
     };
 
@@ -78,8 +79,8 @@ const AddProduct = () => {
             });
 
             // POST for new product
-            await axios.post(`https://api.elrayan.acwad.tech/api/v1/product`, formData, {
-                headers: { ...headers, "Content-Type": "multipart/form-data" },
+            await api.post(`/product`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
             });
 
             toast.success(t("products.add_success"));
@@ -111,11 +112,11 @@ const AddProduct = () => {
             </Form.Item>
             <Form.Item label={t("products.select_main")} name="main_category_id" rules={[{ required: true }]}>
                 <Select onChange={handleMainCategoryChange}>
-                    {categories.map(cat => <Option key={cat.id} value={cat.id}>{cat.name.en}</Option>)}
+                    {categories.map(cat => <Option key={cat.id} value={cat.id}>{language === "ar" ? (cat.name?.ar || cat.name?.en) : (cat.name?.en || cat.name?.ar)}</Option>)}
                 </Select>
             </Form.Item>
             <Form.Item label={t("products.select_sub")} name="sub_category_id" rules={[{ required: true }]}>
-                <Select>{subCategories.map(sub => <Option key={sub.id} value={sub.id}>{sub.name.en}</Option>)}</Select>
+                <Select>{subCategories.map(sub => <Option key={sub.id} value={sub.id}>{language === "ar" ? (sub.name?.ar || sub.name?.en) : (sub.name?.en || sub.name?.ar)}</Option>)}</Select>
             </Form.Item>
             <Form.Item label={t("products.stock")} name="stock"><InputNumber min={0} style={{ width: "100%" }} /></Form.Item>
             {/* <Form.Item label="Featured" name="isFeatured" valuePropName="checked"><Switch /></Form.Item>

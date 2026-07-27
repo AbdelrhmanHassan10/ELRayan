@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../Api/Api";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
@@ -37,9 +37,8 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       setLoadingOrders(true);
-      const res = await axios.get(
-        `https://api.elrayan.acwad.tech/api/v1/orders?page=${page}&limit=${limit}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.get(
+        `/orders?page=${page}&limit=${limit}`
       );
       setOrders(res.data.data.items);
       setStats(res.data.data.statistics);
@@ -60,13 +59,11 @@ export default function Orders() {
     try {
       const body = {
         status: newStatus,
-        paymentStatus: "pending",
         notes: "status updated from dashboard",
       };
-      await axios.patch(
-        `https://api.elrayan.acwad.tech/api/v1/orders/${orderId}`,
-        body,
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.patch(
+        `/orders/${orderId}`,
+        body
       );
       toast.success(t("orders.update_success"));
       fetchOrders();
@@ -80,9 +77,8 @@ export default function Orders() {
     try {
       setLoadingDetails(true);
       setSelectedOrder(null);
-      const res = await axios.get(
-        `https://api.elrayan.acwad.tech/api/v1/orders/${orderId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.get(
+        `/orders/${orderId}`
       );
       setSelectedOrder(res.data.data);
     } catch {
@@ -148,11 +144,11 @@ export default function Orders() {
       title: t("orders.actions"),
       key: "actions",
       render: (_, record) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Button size="small" onClick={() => fetchOrderDetails(record.id)}>
             {t("orders.view")}
           </Button>
-          {record.availableTransitions?.length > 0 && (
+          {record.availableTransitions?.length > 0 ? (
             <Select
               size="small"
               placeholder={t("orders.change_status")}
@@ -165,12 +161,13 @@ export default function Orders() {
                 </Option>
               ))}
             </Select>
+          ) : (
+            <Tag color="default">{t("orders.final_status") || "Final"}</Tag>
           )}
         </div>
       ),
     },
   ];
-  console.log(selectedOrder)
   return (
     <div className="p-6 ">
       <ToastContainer />

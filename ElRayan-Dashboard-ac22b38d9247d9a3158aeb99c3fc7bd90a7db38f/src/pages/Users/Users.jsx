@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../Api/Api";
 import {
     Table,
     Input,
@@ -19,7 +19,9 @@ import { Link } from "react-router-dom";
 import {
     EyeOutlined,
     DeleteOutlined,
-    BarChartOutlined
+    BarChartOutlined,
+    StopOutlined,
+    CheckCircleOutlined,
 } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 
@@ -44,10 +46,9 @@ export default function UsersPage() {
             const l = opts.limit ?? limit;
             const kw = opts.keyword ?? keyword;
 
-            const res = await axios.get(
-                `https://api.elrayan.acwad.tech/api/v1/user`,
+            const res = await api.get(
+                `/user`,
                 {
-                    headers: baseHeaders,
                     params: {
                         keyword: kw || undefined,
                         page: p,
@@ -77,9 +78,7 @@ export default function UsersPage() {
 
     const fetchUserDetails = async (id) => {
         try {
-            const res = await axios.get(`https://api.elrayan.acwad.tech/api/v1/user/${id}`, {
-                headers: baseHeaders,
-            });
+            const res = await api.get(`/user/${id}`);
             setSelectedUser(res.data.data);
             setModalOpen(true);
         } catch (err) {
@@ -91,10 +90,8 @@ export default function UsersPage() {
     const toggleBlock = async (id) => {
         try {
             const hide = message.loading("Processing...", 0);
-            const res = await axios.patch(
-                `https://api.elrayan.acwad.tech/api/v1/user/${id}/toggle-block`,
-                {},
-                { headers: baseHeaders }
+            const res = await api.patch(
+                `/user/${id}/toggle-block`
             );
             hide();
 
@@ -133,9 +130,8 @@ export default function UsersPage() {
 
     const handleDeleteOk = async () => {
         try {
-            const res = await axios.delete(
-                `https://api.elrayan.acwad.tech/api/v1/user/${deleteUserId}`,
-                { headers: baseHeaders }
+            const res = await api.delete(
+                `/user/${deleteUserId}`
             );
             if (res.status === 200) {
                 setUsers(prev => prev.filter(u => u.id !== deleteUserId));
@@ -160,18 +156,14 @@ export default function UsersPage() {
     const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
     const handleAnalysis = async (id) => {
         try {
-            const res = await axios.get(
-                `https://api.elrayan.acwad.tech/api/v1/orders/customer-lifetime-value/${id}`,
-                { headers: baseHeaders }
+            const res = await api.get(
+                `/orders/customer-lifetime-value/${id}`
             );
             if (res.status === 200) {
                 const data = res.data;
                 setAnalysis(data);
                 setAnalysisModalOpen(true);
             }
-
-            console.log(analysis);
-
         } catch (err) {
             console.error(err);
             toast.error(t("users.analysis_fail"));
@@ -223,6 +215,17 @@ export default function UsersPage() {
                 gender === null ? <Tag color="gray">{t("users.unknown")}</Tag> : gender === "male" ? <Tag color="blue">{t("users.male")}</Tag> : <Tag color="pink">{t("users.female")}</Tag>,
         },
         {
+            title: t("users.status") || "Status",
+            dataIndex: "status",
+            key: "status",
+            render: (status) =>
+                status === "blocked" ? (
+                    <Tag color="red">{t("users.blocked") || "Blocked"}</Tag>
+                ) : (
+                    <Tag color="green">{t("users.active") || "Active"}</Tag>
+                ),
+        },
+        {
             title: t("users.actions"),
             key: "actions",
             render: (_, user) => (
@@ -235,10 +238,18 @@ export default function UsersPage() {
                         icon={<BarChartOutlined />}
                         type={"dashed"}
                         onClick={() => handleAnalysis(user.id)}
-
-
                     >
                         {t("users.analysis")}
+                    </Button>
+
+                    <Button
+                        type="default"
+                        danger={user.status !== "blocked"}
+                        style={user.status === "blocked" ? { borderColor: "#52c41a", color: "#52c41a" } : {}}
+                        icon={user.status === "blocked" ? <CheckCircleOutlined /> : <StopOutlined />}
+                        onClick={() => toggleBlock(user.id)}
+                    >
+                        {user.status === "blocked" ? (t("users.unblock") || "Unblock") : (t("users.block") || "Block")}
                     </Button>
 
                     <Button danger icon={<DeleteOutlined />} onClick={() => showDeleteModal(user.id)}>

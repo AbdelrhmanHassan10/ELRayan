@@ -199,6 +199,7 @@
     "order_count": "عدد الطلبات",
     "total_spent": "إجمالي الإنفاق",
     "avg_order_value": "متوسط قيمة الطلب",
+    "average_order_value": "متوسط قيمة الطلب",
     "no_customers": "لا يوجد عملاء",
     "fetch_fail": "خطأ في جلب العملاء",
     "select_dates": "اختر تاريخ البداية والنهاية"
@@ -442,7 +443,11 @@
     "weekly_revenue": "إيراد الأسبوع",
     "weekly_orders": "طلبات الأسبوع",
     "monthly_revenue": "إيراد الشهر",
-    "monthly_orders": "طلبات الشهر"
+    "monthly_orders": "طلبات الشهر",
+    "live_status": "نظام مباشر | Live Stream",
+    "admin_panel": "مركز القيادة والتحليل",
+    "welcome_desc": "مرحباً بك في مركز التحليلات وإدارة العمليات. استعرض التقارير الحية، راقب أداء المبيعات والمنتجات، واتخذ قراراتك بدقة وسرعة.",
+    "current_date": "توقيت النظام الحالي"
   },
   "rewards": {
     "title": "المكافآت",

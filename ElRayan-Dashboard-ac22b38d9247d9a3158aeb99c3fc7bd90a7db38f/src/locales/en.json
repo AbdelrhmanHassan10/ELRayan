@@ -199,6 +199,7 @@
     "order_count": "Order Count",
     "total_spent": "Total Spent",
     "avg_order_value": "Average Order Value",
+    "average_order_value": "Average Order Value",
     "no_customers": "No customers found",
     "fetch_fail": "Error fetching top customers",
     "select_dates": "Select start and end dates"
@@ -442,7 +443,11 @@
     "weekly_revenue": "Weekly Revenue",
     "weekly_orders": "Weekly Orders",
     "monthly_revenue": "Monthly Revenue",
-    "monthly_orders": "Monthly Orders"
+    "monthly_orders": "Monthly Orders",
+    "live_status": "Live Status | Realtime",
+    "admin_panel": "Command & Analytics Center",
+    "welcome_desc": "Welcome to the Analytics & Operations Command Center. Monitor sales, track products, and make data-driven decisions.",
+    "current_date": "Current System Date"
   },
   "rewards": {
     "title": "Rewards",

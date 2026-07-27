@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../../Api/Api";
 import {
   Form,
   Input,
@@ -19,7 +19,8 @@ import { useTranslation } from "react-i18next";
 const { Option } = Select;
 
 const EditProduct = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language || "en";
   const { id } = useParams();
   const [form] = Form.useForm();
   const [product, setProduct] = useState(null);
@@ -39,10 +40,7 @@ const EditProduct = () => {
       try {
         setLoading(true);
         // Fetch product
-        const productRes = await axios.get(
-          `https://api.elrayan.acwad.tech/api/v1/product/${id}`,
-          { headers },
-        );
+        const productRes = await api.get(`/product/${id}`);
         const data = productRes.data.data;
         setProduct(data);
 
@@ -56,17 +54,13 @@ const EditProduct = () => {
         setFileList(images);
 
         // Fetch categories
-        const catRes = await axios.get(
-          "https://api.elrayan.acwad.tech/api/v1/category",
-          { headers },
-        );
+        const catRes = await api.get("/category");
         setCategories(catRes.data.data);
 
         // Fetch subcategories of the product's main category
         const mainCatId = data.main_category_id;
-        const subCatRes = await axios.get(
-          `https://api.elrayan.acwad.tech/api/v1/sub-categories?main_category=${mainCatId}`,
-          { headers },
+        const subCatRes = await api.get(
+          `/sub-categories?main_category=${mainCatId}`
         );
         setSubCategories(subCatRes.data.data);
 
@@ -99,9 +93,8 @@ const EditProduct = () => {
 
   const handleMainCategoryChange = async (value) => {
     form.setFieldsValue({ sub_category_id: null });
-    const res = await axios.get(
-      `https://api.elrayan.acwad.tech/api/v1/sub-categories?main_category=${value}`,
-      { headers },
+    const res = await api.get(
+      `/sub-categories?main_category=${value}`
     );
     setSubCategories(res.data.data);
   };
@@ -129,11 +122,11 @@ const EditProduct = () => {
         if (file.originFileObj) formData.append("images", file.originFileObj);
       });
 
-      await axios.patch(
-        `https://api.elrayan.acwad.tech/api/v1/product/${id}`,
+      await api.patch(
+        `/product/${id}`,
         formData,
         {
-          headers: { ...headers, "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" },
         },
       );
       toast.success(t("product_details.update_success"));
@@ -219,7 +212,7 @@ const EditProduct = () => {
         <Select onChange={handleMainCategoryChange}>
           {categories.map((cat) => (
             <Option key={cat.id} value={cat.id}>
-              {cat.name.en}
+              {language === "ar" ? (cat.name?.ar || cat.name?.en) : (cat.name?.en || cat.name?.ar)}
             </Option>
           ))}
         </Select>
@@ -232,7 +225,7 @@ const EditProduct = () => {
         <Select>
           {subCategories.map((sub) => (
             <Option key={sub.id} value={sub.id}>
-              {sub.name.en}
+              {language === "ar" ? (sub.name?.ar || sub.name?.en) : (sub.name?.en || sub.name?.ar)}
             </Option>
           ))}
         </Select>

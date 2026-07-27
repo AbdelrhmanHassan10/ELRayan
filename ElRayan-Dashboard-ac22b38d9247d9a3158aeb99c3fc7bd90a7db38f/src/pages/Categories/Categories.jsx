@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, Upload, Popconfirm, Spin, Tag, message } from "antd";
 import { Plus, Edit3, Trash2, Upload as UploadIcon, Eye } from "lucide-react";
-import axios from "axios";
+import api from "../../Api/Api";
 import { toast, ToastContainer } from "react-toastify";
 import { useTranslation } from "react-i18next";
 
@@ -34,7 +34,7 @@ export default function Categories() {
     // ============================
     const fetchCategories = async () => {
         try {
-            const res = await axios.get("https://api.elrayan.acwad.tech/api/v1/category", { headers });
+            const res = await api.get("/category");
             setCategories(res.data.data);
         } catch (e) {
             console.log(e);
@@ -64,7 +64,7 @@ export default function Categories() {
         try {
             setEditMode(true);
 
-            const res = await axios.get(`https://api.elrayan.acwad.tech/api/v1/category/${catId}`, { headers });
+            const res = await api.get(`/category/${catId}`);
             const c = res.data.data;
 
             setSelectedCat(c);
@@ -86,18 +86,11 @@ export default function Categories() {
     // ============================
     const showSub = async (catId) => {
         try {
-            const res = await axios.get(
-                `https://api.elrayan.acwad.tech/api/v1/sub-categories?main_category=${catId}`,
-                { headers }
+            const res = await api.get(
+                `/sub-categories?main_category=${catId}`
             );
 
-            const list = res.data.data;
-
-            if (!list || list.length === 0) {
-                toast.warning(t("categories.no_subs"));
-                return; // ❌ متفتحش الموديل
-            }
-
+            const list = res.data.data || [];
             setSubList(list);
             setSelectedCat(catId); // مهم
             setSubOpen(true);
@@ -112,7 +105,7 @@ export default function Categories() {
     // ============================
     const deleteCat = async (id) => {
         try {
-            await axios.delete(`https://api.elrayan.acwad.tech/api/v1/category/${id}`, { headers });
+            await api.delete(`/category/${id}`);
             fetchCategories();
         } catch (e) {
             console.log(e);
@@ -149,12 +142,10 @@ export default function Categories() {
                 fd.append("icon", file);
             }
 
-            console.log(fd.get("name[en]"));
-
             if (editMode) {
-                await axios.patch(`https://api.elrayan.acwad.tech/api/v1/category/${selectedCat.id}`, fd, { headers });
+                await api.patch(`/category/${selectedCat.id}`, fd);
             } else {
-                await axios.post("https://api.elrayan.acwad.tech/api/v1/category", fd, { headers });
+                await api.post("/category", fd);
             }
 
             setModalOpen(false);
@@ -263,16 +254,14 @@ export default function Categories() {
             }
 
             if (subEditMode) {
-                await axios.patch(
-                    `https://api.elrayan.acwad.tech/api/v1/sub-categories/${selectedSub.id}`,
-                    fd,
-                    { headers }
+                await api.patch(
+                    `/sub-categories/${selectedSub.id}`,
+                    fd
                 );
             } else {
-                await axios.post(
-                    `https://api.elrayan.acwad.tech/api/v1/sub-categories`,
-                    fd,
-                    { headers }
+                await api.post(
+                    `/sub-categories`,
+                    fd
                 );
             }
 
@@ -288,9 +277,8 @@ export default function Categories() {
 
     const deleteSub = async (id) => {
         try {
-            await axios.delete(
-                `https://api.elrayan.acwad.tech/api/v1/sub-categories/${id}`,
-                { headers }
+            await api.delete(
+                `/sub-categories/${id}`
             );
             showSub(selectedCat);
         } catch (e) {

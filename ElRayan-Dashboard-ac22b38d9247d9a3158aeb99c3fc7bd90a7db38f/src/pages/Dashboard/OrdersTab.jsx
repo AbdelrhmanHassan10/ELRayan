@@ -34,8 +34,11 @@ import {
   Users,
   Package,
   ShoppingCart,
+  CheckCircle2,
+  Award,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useProductImages } from "../../utils/useProductImages";
 
 const API = "https://api.elrayan.acwad.tech/api/v1/orders/dashboard";
 const COLORS = [
@@ -50,6 +53,7 @@ const OVERVIEW_COLORS = ["#e3f2fd", "#fff3e0", "#e8f5e9", "#fce4ec", "#e0f7fa"];
 
 const OrdersTab = () => {
   const { t } = useTranslation();
+  const { getProductImage } = useProductImages();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
@@ -76,14 +80,14 @@ const OrdersTab = () => {
     };
   }, [language]);
 
-  const StatCard = ({ title, value, prefix, color = "#fff", formatter }) => {
+  const StatCard = ({ title, value, icon, accent, formatter, isProgress }) => {
     const [displayValue, setDisplayValue] = useState(0);
 
     useEffect(() => {
       let start = 0;
       const end = value || 0;
       if (start === end) return;
-      let duration = 1000;
+      let duration = 1200;
       let increment = end / (duration / 16);
       const counter = setInterval(() => {
         start += increment;
@@ -96,21 +100,39 @@ const OrdersTab = () => {
       return () => clearInterval(counter);
     }, [value]);
 
+    const formattedVal = formatter ? formatter(displayValue) : Math.round(displayValue).toLocaleString();
+
     return (
-      <Card
-        style={{
-          height: 120,
-          borderRadius: 12,
-          background: color,
-          boxShadow: "0 3px 12px rgba(0,0,0,0.05)",
-        }}
-      >
-        <div style={{ fontSize: 13, color: "#666" }}>{title}</div>
-        <div style={{ fontSize: 24, fontWeight: "700", marginTop: 6 }}>
-          {formatter ? formatter(displayValue) : Math.round(displayValue)}
+      <div className="relative bg-white rounded-2xl border border-slate-200/60 hover:border-slate-300/80 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden group cursor-default">
+        {/* Left accent bar */}
+        <div className={`absolute top-0 left-0 w-1 h-full ${accent || 'bg-[#172554]'} rounded-l-2xl`}></div>
+        
+        <div className="p-4 ps-5">
+          {/* Top row: icon + title */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-[#172554]/[0.06] flex items-center justify-center text-[#172554] group-hover:bg-[#172554]/[0.1] transition-colors duration-300">
+              {icon}
+            </div>
+            <span className="text-slate-500 font-semibold text-[13px] leading-tight">{title}</span>
+          </div>
+          
+          {/* Value */}
+          <div className="text-[1.65rem] font-extrabold text-slate-800 tracking-tight leading-none">
+            {formattedVal}
+          </div>
+          
+          {isProgress && (
+            <div className="mt-2.5 w-full">
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#172554] to-[#b91c1c] rounded-full transition-all duration-1000 ease-out"
+                  style={{ width: `${Math.min(100, Math.round(displayValue))}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
-        {prefix && <div style={{ marginTop: 4 }}>{prefix}</div>}
-      </Card>
+      </div>
     );
   };
 
@@ -121,36 +143,41 @@ const OrdersTab = () => {
       {
         title: t("dashboard.total_revenue"),
         value: o.totalRevenue,
-        prefix: <DollarSign size={18} />,
-        color: OVERVIEW_COLORS[0],
+        icon: <DollarSign size={18} strokeWidth={2.5} />,
+        accent: "bg-[#172554]",
+        formatter: (v) => `${language === "ar" ? "ج.م " : "EGP "}${Math.round(v).toLocaleString()}`,
       },
       {
         title: t("dashboard.total_orders"),
         value: o.totalOrders,
-        prefix: <ShoppingCart size={18} />,
-        color: OVERVIEW_COLORS[1],
+        icon: <ShoppingCart size={18} strokeWidth={2.5} />,
+        accent: "bg-[#b91c1c]",
+        formatter: (v) => Math.round(v).toLocaleString(),
       },
       {
         title: t("dashboard.total_products"),
         value: o.totalProducts,
-        prefix: <Package size={18} />,
-        color: OVERVIEW_COLORS[2],
+        icon: <Package size={18} strokeWidth={2.5} />,
+        accent: "bg-[#172554]",
+        formatter: (v) => Math.round(v).toLocaleString(),
       },
       {
         title: t("dashboard.total_customers"),
         value: o.totalCustomers,
-        prefix: <Users size={18} />,
-        color: OVERVIEW_COLORS[3],
+        icon: <Users size={18} strokeWidth={2.5} />,
+        accent: "bg-[#b91c1c]",
+        formatter: (v) => Math.round(v).toLocaleString(),
       },
       {
         title: t("dashboard.completion_rate"),
         value: o.completionRate,
-        prefix: "%",
-        color: OVERVIEW_COLORS[4],
+        icon: <CheckCircle2 size={18} strokeWidth={2.5} />,
+        accent: "bg-gradient-to-b from-[#172554] to-[#b91c1c]",
         formatter: (v) => `${v.toFixed(1)}%`,
+        isProgress: true,
       },
     ];
-  }, [data, t]);
+  }, [data, t, language]);
 
   const dailyTrend = useMemo(
     () =>
@@ -194,25 +221,30 @@ const OrdersTab = () => {
       title: t("products_performance.product"),
       dataIndex: "name",
       key: "name",
-      render: (txt, r) => (
+      render: (txt, r) => {
+        const imgSrc = getProductImage(r);
+        return (
         <Space>
-          <img
-            src={
-              r.Image?.startsWith("/")
-                ? `https://api.elrayan.acwad.tech${r.Image}`
-                : r.Image
-            }
-            alt=""
-            style={{
-              width: 48,
-              height: 48,
-              objectFit: "cover",
-              borderRadius: 6,
-            }}
-          />
-          {txt}
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt=""
+              style={{
+                width: 36,
+                height: 36,
+                objectFit: "cover",
+                borderRadius: 8,
+              }}
+            />
+          ) : (
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              📦
+            </div>
+          )}
+          <span className="font-bold text-slate-700">{txt}</span>
         </Space>
-      ),
+        );
+      },
     },
     {
       title: t("products_performance.main_category"),
@@ -243,16 +275,38 @@ const OrdersTab = () => {
       title: t("products_performance.product"),
       dataIndex: "name",
       key: "name",
+      render: (v) => (
+        <span className="font-bold text-slate-800 text-xs sm:text-sm line-clamp-1">
+          {v || (language === "ar" ? "منتج بدون اسم" : "Unnamed Product")}
+        </span>
+      ),
     },
     {
       title: t("inventory.current_stock"),
       dataIndex: "currentStock",
       key: "currentStock",
+      render: (v) => {
+        const num = Number(v || 0);
+        return num <= 3 ? (
+          <span className="inline-flex items-center justify-center font-extrabold text-red-600 bg-red-50/80 px-2.5 py-0.5 rounded-full border border-red-200 text-xs shadow-2xs">
+            {num}
+          </span>
+        ) : (
+          <span className="inline-flex items-center justify-center font-bold text-amber-700 bg-amber-50/80 px-2.5 py-0.5 rounded-full border border-amber-200 text-xs">
+            {num}
+          </span>
+        );
+      },
     },
     {
       title: t("products_performance.total_sold"),
       dataIndex: "sold",
       key: "sold",
+      render: (v) => (
+        <span className="font-bold text-slate-600 text-xs sm:text-sm">
+          {Number(v || 0).toLocaleString()}
+        </span>
+      ),
     },
     {
       title: t("low_stock.recommended"),
@@ -260,9 +314,13 @@ const OrdersTab = () => {
       key: "isRecommended",
       render: (v) =>
         v ? (
-          <Tag color="green">{t("common.yes")}</Tag>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 font-bold text-xs border border-emerald-500/20">
+            {t("common.yes") || (language === "ar" ? "نعم" : "Yes")}
+          </span>
         ) : (
-          <Tag>{t("common.no")}</Tag>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-medium text-xs">
+            {t("common.no") || (language === "ar" ? "لا" : "No")}
+          </span>
         ),
     },
   ];
@@ -309,16 +367,14 @@ const OrdersTab = () => {
 
   return (
     <div className="space-y-6">
-      <Row gutter={[16, 16]}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
         {overviewCards.map((c, idx) => (
-          <Col xs={24} sm={12} md={6} lg={4} key={c.title}>
-            <StatCard {...c} formatter={(v) => Math.round(v)} />
-          </Col>
+          <StatCard key={c.title || idx} {...c} />
         ))}
-      </Row>
+      </div>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
-        <Col xs={24} lg={16}>
+      <Row gutter={[16, 16]} style={{ marginTop: 20 }} className="!flex !flex-wrap items-stretch">
+        <Col xs={24} lg={16} className="!flex flex-col">
           {/* Revenue Trends */}
           <Card
             title={
@@ -391,108 +447,57 @@ const OrdersTab = () => {
           </Card>
 
           <Card
-            title={t("dashboard.top_selling_products")}
-            style={{ marginTop: 16 }}
+            title={
+              <div className="flex items-center gap-2.5 font-black text-slate-800 text-base">
+                <span className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs">
+                  <Package size={18} />
+                </span>
+                <span>{t("dashboard.top_selling_products")}</span>
+              </div>
+            }
+            className="mt-4 shadow-sm border-slate-200/80 rounded-2xl overflow-hidden bg-white flex-grow"
           >
             <Table
               columns={productColumns}
               dataSource={data.productStats?.topSellingProducts}
               rowKey="id"
               pagination={false}
+              scroll={{ x: 650 }}
             />
           </Card>
         </Col>
 
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={8} className="!flex flex-col">
           {/* Right column */}
           <Card
             title={
-              <Space>
-                <PieIcon size={16} />
-                {t("dashboard.orders_by_status")}
-              </Space>
-            }
-            style={{ marginBottom: 16 }}
-          >
-            <div style={{ height: 240 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={ordersByStatus}
-                    dataKey="count"
-                    nameKey="status"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={70}
-                    label
-                  >
-                    {ordersByStatus.map((entry, idx) => (
-                      <Cell
-                        key={`c-${idx}`}
-                        fill={COLORS[idx % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ marginTop: 8 }}>
-                {ordersByStatus.map((s, i) => (
-                  <div
-                    key={s.status}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "6px 0",
-                    }}
-                  >
-                    <div>
-                      <Badge color={COLORS[i % COLORS.length]} /> {s.status}
-                    </div>
-                    <div>
-                      {s.count} ({(s.percentage || 0).toFixed(1)}%)
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2 font-black text-slate-800">
+                <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600">
+                  <PieIcon size={18} />
+                </span>
+                <span>{t("dashboard.orders_by_status")}</span>
               </div>
-            </div>
-          </Card>
-
-          <Card
-            title={t("dashboard.payment_status")}
-            style={{ marginBottom: 16 }}
+            }
+            className="mb-4 shadow-sm border-slate-100 rounded-2xl"
           >
-            <div>
-              {ordersByPayment.map((p, i) => (
-                <div
-                  key={p.status}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "6px 0",
-                  }}
-                >
-                  <div>{p.status}</div>
-                  <div>
-                    {p.count} ({(p.percentage || 0).toFixed(1)}%)
-                  </div>
-                </div>
-              ))}
-              <div style={{ height: 150, marginTop: 8 }}>
-                <ResponsiveContainer>
+            <div className="space-y-4">
+              {/* Doughnut Chart Container */}
+              <div className="relative w-full h-52 flex items-center justify-center bg-slate-50/60 rounded-2xl p-2 border border-slate-100">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={paymentMethods}
+                      data={ordersByStatus}
                       dataKey="count"
-                      nameKey="method"
+                      nameKey="status"
                       cx="50%"
                       cy="50%"
-                      outerRadius={50}
-                      label
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={4}
                     >
-                      {paymentMethods.map((_, idx) => (
+                      {ordersByStatus.map((entry, idx) => (
                         <Cell
-                          key={`pm-${idx}`}
+                          key={`c-${idx}`}
                           fill={COLORS[idx % COLORS.length]}
                         />
                       ))}
@@ -500,100 +505,289 @@ const OrdersTab = () => {
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
+                {/* Center Total Count */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-black text-slate-800">
+                    {ordersByStatus.reduce((acc, curr) => acc + Number(curr.count || 0), 0)}
+                  </span>
+                  <span className="text-3xs font-bold text-slate-400 uppercase tracking-wider">
+                    {language === "ar" ? "طلب" : "orders"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Legend List (No fixed height -> never overflows!) */}
+              <div className="space-y-2 pt-1">
+                {ordersByStatus.map((s, idx) => {
+                  const color = COLORS[idx % COLORS.length];
+                  return (
+                    <div
+                      key={s.status || idx}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-100 shadow-2xs hover:border-slate-200 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
+                          {s.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-black text-slate-800 text-sm">
+                          {s.count}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                          {(s.percentage || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Card>
 
-          {/* <Card title={t("dashboard.recent_stats")}>
-            <div style={{ display: "grid", gap: 8 }}>
-              {Object.entries(data.recentStats).map(([key, value]) => (
-                <div
-                  key={key}
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  <div>
-                    {key
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase())}
-                  </div>
-                  <div>
-                    <b>
-                      {typeof value === "number" &&
-                      key.toLowerCase().includes("revenue")
-                        ? `${language === "ar" ? "ج.م" : "Egp"} ${value}`
-                        : value}
-                    </b>
-                  </div>
+          <Card
+            title={
+              <div className="flex items-center gap-2 font-black text-slate-800">
+                <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600">
+                  <PieIcon size={18} />
+                </span>
+                <span>{t("dashboard.payment_status")}</span>
+              </div>
+            }
+            className="mb-4 shadow-sm border-slate-100 rounded-2xl"
+          >
+            <div className="space-y-5">
+              {/* 1. Payment Status List */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  {language === "ar" ? "حالة السداد" : "Payment Status"}
                 </div>
-              ))}
-            </div>
-          </Card>
-           */}
-
-          <Card title={t("dashboard.recent_stats")}>
-            <div style={{ display: "grid", gap: 8 }}>
-              {Object.entries(data.recentStats).map(
-                ([key, value], index, arr) => {
-                  const isEndOfPair = index % 2 === 1;
-                  const isLastItem = index === arr.length - 1;
-
+                {ordersByPayment.map((p, idx) => {
+                  const color = COLORS[(idx + 2) % COLORS.length];
                   return (
                     <div
-                      key={key}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        paddingBottom: isEndOfPair && !isLastItem ? 12 : 0,
-                        marginBottom: isEndOfPair && !isLastItem ? 12 : 0,
-                        borderBottom:
-                          isEndOfPair && !isLastItem
-                            ? "1px solid #e5e7eb"
-                            : "none",
-                      }}
+                      key={p.status || idx}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/80 border border-slate-100"
                     >
-                      <div>{t(recentStatsLabels[key])}</div>
-
-                      <div>
-                        <b>
-                          {typeof value === "number" &&
-                          key.toLowerCase().includes("revenue")
-                            ? `${language === "ar" ? "ج.م" : "EGP"} ${value}`
-                            : value}
-                        </b>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
+                          {p.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-extrabold text-slate-800 text-sm">
+                          {p.count}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                          {(p.percentage || 0).toFixed(1)}%
+                        </span>
                       </div>
                     </div>
                   );
-                },
+                })}
+              </div>
+
+              {/* 2. Payment Methods Chart & Legend */}
+              {paymentMethods && paymentMethods.length > 0 && (
+                <div className="pt-4 border-t border-slate-100 space-y-4">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {language === "ar" ? "طرق الدفع" : "Payment Methods"}
+                  </div>
+
+                  <div className="relative w-full h-48 flex items-center justify-center bg-slate-50/60 rounded-2xl p-2 border border-slate-100">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={paymentMethods}
+                          dataKey="count"
+                          nameKey="method"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={65}
+                          paddingAngle={4}
+                        >
+                          {paymentMethods.map((_, idx) => (
+                            <Cell
+                              key={`pm-${idx}`}
+                              fill={COLORS[idx % COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-lg font-black text-slate-800">
+                        {paymentMethods.reduce((acc, curr) => acc + Number(curr.count || 0), 0)}
+                      </span>
+                      <span className="text-3xs font-bold text-slate-400 uppercase">
+                        {language === "ar" ? "عملية" : "txns"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {paymentMethods.map((pm, idx) => {
+                      const color = COLORS[idx % COLORS.length];
+                      return (
+                        <div
+                          key={pm.method || idx}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-100 shadow-2xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
+                              {pm.method}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="font-black text-slate-800 text-sm">
+                              {pm.count}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                              {(pm.percentage || 0).toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           </Card>
 
+          {/* Recent Stats Card */}
           <Card
-            title={t("dashboard.low_stock_products")}
-            style={{ marginTop: 16 }}
+            title={
+              <div className="flex items-center gap-2 font-black text-slate-800">
+                <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600">
+                  <Award size={18} />
+                </span>
+                <span>{t("dashboard.recent_stats")}</span>
+              </div>
+            }
+            className="shadow-sm border-slate-100 rounded-2xl flex-grow flex flex-col"
+            bodyStyle={{ flexGrow: 1, display: "flex", flexDirection: "column", padding: "16px" }}
           >
-            <Table
-              columns={lowStockColumns}
-              dataSource={data.productStats?.lowStockProducts}
-              rowKey="id"
-              pagination={false}
-            />
+            <div className="flex flex-col h-full gap-3 flex-grow">
+              {[
+                {
+                  title: language === "ar" ? "اليوم" : "Today",
+                  revenueKey: "todayRevenue",
+                  ordersKey: "todayOrders",
+                  revenueLabel: "dashboard.today_revenue",
+                  ordersLabel: "dashboard.today_orders",
+                },
+                {
+                  title: language === "ar" ? "هذا الأسبوع" : "This Week",
+                  revenueKey: "weeklyRevenue",
+                  ordersKey: "weeklyOrders",
+                  revenueLabel: "dashboard.weekly_revenue",
+                  ordersLabel: "dashboard.weekly_orders",
+                },
+                {
+                  title: language === "ar" ? "هذا الشهر" : "This Month",
+                  revenueKey: "monthlyRevenue",
+                  ordersKey: "monthlyOrders",
+                  revenueLabel: "dashboard.monthly_revenue",
+                  ordersLabel: "dashboard.monthly_orders",
+                }
+              ].map((group, idx) => {
+                const revenue = data.recentStats?.[group.revenueKey];
+                const orders = data.recentStats?.[group.ordersKey];
+                
+                return (
+                  <div key={idx} className="flex-1 flex flex-col justify-center bg-slate-50/50 rounded-2xl p-4 border border-slate-100 shadow-2xs hover:shadow-sm transition-all relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-rose-800 to-rose-950 rounded-l-2xl opacity-80 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <div className="text-sm font-black text-slate-600 uppercase tracking-widest mb-3 px-2">
+                      {group.title}
+                    </div>
+                    
+                    <div className="space-y-2 px-1">
+                      <div className="flex items-center justify-between bg-red-50/50 p-2 rounded-lg border border-red-100/50">
+                        <span className="font-bold text-slate-600 text-xs">
+                          {t(group.revenueLabel)}
+                        </span>
+                        <span className="font-black text-sm text-[#b91c1c]">
+                          {typeof revenue === "number" ? revenue.toLocaleString() : revenue} {language === "ar" ? "ج.م" : "EGP"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100">
+                        <span className="font-bold text-slate-600 text-xs">
+                          {t(group.ordersLabel)}
+                        </span>
+                        <span className="font-extrabold text-sm text-slate-800">
+                          {typeof orders === "number" ? orders.toLocaleString() : orders}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
         </Col>
+      </Row>
+
+      {/* Full Width Sections Below the Main Columns */}
+      <div className="grid grid-cols-1 gap-6">
+        <Card
+          title={
+            <div className="flex items-center gap-2.5 font-black text-slate-800 text-base">
+              <span className="p-2 rounded-xl bg-red-50 text-[#b91c1c] border border-red-100 shadow-2xs">
+                <ShoppingCart size={18} />
+              </span>
+              <span>{t("dashboard.low_stock_products")}</span>
+            </div>
+          }
+          className="shadow-sm border-slate-200/80 rounded-2xl overflow-hidden bg-white"
+        >
+          <Table
+            columns={lowStockColumns}
+            dataSource={data.productStats?.lowStockProducts}
+            rowKey="id"
+            pagination={{ pageSize: 10, size: "small", showSizeChanger: false }}
+            scroll={{ x: 550 }}
+            className="overflow-x-auto"
+          />
+        </Card>
 
         <Card
-          title={t("dashboard.top_customers")}
-          style={{ marginTop: 16, width: "100%" }}
+          title={
+            <div className="flex items-center gap-2.5 font-black text-slate-800 text-base">
+              <span className="p-2 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 shadow-2xs">
+                <Users size={18} />
+              </span>
+              <span>{t("dashboard.top_customers")}</span>
+            </div>
+          }
+          className="shadow-sm border-slate-200/80 rounded-2xl overflow-hidden bg-white"
         >
           <Table
             columns={customerColumns}
             dataSource={data?.topCustomers}
             rowKey="id"
-            pagination={false}
+            pagination={{ pageSize: 5, size: "small", showSizeChanger: false }}
+            scroll={{ x: 650 }}
             className="overflow-x-auto"
           />
         </Card>
-      </Row>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../Api/Api";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Card, Button, Spin, Form, Input, Modal, Row, Col, Switch, Typography } from "antd";
@@ -24,10 +24,7 @@ export default function AppVersionSettings() {
   const checkVersion = async () => {
     try {
       setChecking(true);
-      const res = await axios.get(
-        "https://api.elrayan.acwad.tech/api/v1/app-version/check",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.get("/app-version/check");
       setVersionData(res.data);
       toast.success(t("general_settings.version_loaded"));
     } catch (err) {
@@ -38,15 +35,21 @@ export default function AppVersionSettings() {
     }
   };
 
+  useEffect(() => {
+    checkVersion();
+  }, []);
+
+  useEffect(() => {
+    if (versionData && showUpdateModal) {
+      form.setFieldsValue(versionData);
+    }
+  }, [versionData, showUpdateModal, form]);
+
   // Toggle app status
   const toggleAppStatus = async (checked) => {
     try {
       setUpdating(true);
-      const res = await axios.patch(
-        "https://api.elrayan.acwad.tech/api/v1/app-version/toggle-app-status",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.patch("/app-version/toggle-app-status");
       setVersionData(prev => ({ ...prev, isOpen: res.data.isOpen }));
       toast.success(t("general_settings.app_status_updated", { status: res.data.isOpen ? t("general_settings.open") : t("general_settings.closed") }));
     } catch (err) {
@@ -61,11 +64,7 @@ export default function AppVersionSettings() {
   const updateVersion = async (values) => {
     try {
       setUpdating(true);
-      await axios.put(
-        "https://api.elrayan.acwad.tech/api/v1/app-version/update",
-        values,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put("/app-version/update", values);
       toast.success(t("general_settings.update_success"));
       setShowUpdateModal(false);
       checkVersion();
@@ -81,12 +80,12 @@ export default function AppVersionSettings() {
   const fetchHtml = async (url) => {
     try {
       setLoading(true);
-      const res = await axios.get(url);
+      const res = await api.get(url);
       setModalHtml(res.data);
       setHtmlModalOpen(true);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to fetch page");
+      toast.error(t("general_settings.fetch_fail") || "Failed to fetch page");
     } finally {
       setLoading(false);
     }
@@ -191,10 +190,10 @@ export default function AppVersionSettings() {
     {/* HTML PAGES CARD */}
     <Card title={t("general_settings.policy_pages")}>
       <div className="flex gap-3">
-        <Button onClick={() => fetchHtml("https://api.elrayan.acwad.tech/api/v1/app-version/privacy-policy-link")}>
+        <Button onClick={() => fetchHtml("/app-version/privacy-policy-link")}>
           {t("general_settings.privacy_policy")}
         </Button>
-        <Button onClick={() => fetchHtml("https://api.elrayan.acwad.tech/api/v1/app-version/deletion-link")}>
+        <Button onClick={() => fetchHtml("/app-version/deletion-link")}>
           {t("general_settings.deletion_policy")}
         </Button>
       </div>
@@ -208,7 +207,7 @@ export default function AppVersionSettings() {
       footer={null}
       width={900}
     >
-      {loading ? <Spin tip="Loading..." /> : <div dangerouslySetInnerHTML={{ __html: modalHtml }} />}
+      {loading ? <Spin tip={t("common.loading") || "Loading..."} /> : <div dangerouslySetInnerHTML={{ __html: modalHtml }} />}
     </Modal>
   </div>
 
