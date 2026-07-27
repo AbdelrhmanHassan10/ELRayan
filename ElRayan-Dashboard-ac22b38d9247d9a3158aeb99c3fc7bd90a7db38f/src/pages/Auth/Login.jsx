@@ -5,7 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
-import logo from "../../../logo.png";
+import logo from "../../../logo_white.png";
 
 export default function Login() {
     const { t } = useTranslation();
