@@ -224,25 +224,20 @@ const OrdersTab = () => {
       render: (txt, r) => {
         const imgSrc = getProductImage(r);
         return (
-        <Space>
-          {imgSrc ? (
-            <img
-              src={imgSrc}
-              alt=""
-              style={{
-                width: 36,
-                height: 36,
-                objectFit: "cover",
-                borderRadius: 8,
-              }}
-            />
-          ) : (
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              📦
-            </div>
-          )}
-          <span className="font-bold text-slate-700">{txt}</span>
-        </Space>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0 shadow-2xs flex items-center justify-center">
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt=""
+                className="w-full h-full object-contain p-0.5"
+              />
+            ) : (
+              <span className="text-xs">📦</span>
+            )}
+          </div>
+          <span className="font-bold text-slate-700 text-xs sm:text-sm">{txt}</span>
+        </div>
         );
       },
     },

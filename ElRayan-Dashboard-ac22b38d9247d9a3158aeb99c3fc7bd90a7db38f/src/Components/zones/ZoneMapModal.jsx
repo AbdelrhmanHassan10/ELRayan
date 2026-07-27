@@ -1,67 +1,67 @@
 // ZoneMapModal.jsx
-import React, { useEffect } from "react"; // استيراد useEffect
+import React, { useEffect } from "react";
 import { Modal } from "antd";
-// استيراد Marker و useMap (مهم لإعادة حساب الحجم)
 import { MapContainer, TileLayer, Polygon, Marker, useMap, Popup } from "react-leaflet";
-import L from "leaflet"; // استيراد Leaflet
-import "leaflet/dist/leaflet.css"; // تأكد من استيراد CSS
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { extractLatLngsFromPolygon } from "../../utils/coords";
 
-// ----------------------------------------------------
-// 1. تحديد الأيقونة (كما فعلت في التاب)
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
 
-// 2. المكون الذي يعيد حساب حجم الخريطة عند ظهور المودال
 function MapResizer({ visible }) {
   const map = useMap();
 
   useEffect(() => {
     if (visible) {
-      // يجب أن يكون التأخير ضرورياً لانتهاء انتقال ظهور المودال
       setTimeout(() => {
         map.invalidateSize();
-      }, 100); // 100ms تأخير جيد للتجربة
+      }, 100);
     }
   }, [visible, map]);
 
   return null;
 }
-// ----------------------------------------------------
-
 
 export default function ZoneMapModal({ visible, onClose, zone }) {
   if (!zone) return null;
-  // تأكد أن latlngs هنا بصيغة [Lat, Long]
   const latlngs = extractLatLngsFromPolygon(zone.polygon);
-
-  // مركز الخريطة سيكون متوسط الإحداثيات أو [0,0]
   const center = latlngs.length ? latlngs[Math.floor(latlngs.length / 2)] : [0, 0];
-
-  // لضمان إعادة تهيئة الخريطة عند تغيير المنطقة (Zone)
   const mapKey = zone.id || 'default-map';
 
   return (
-    <Modal open={visible} footer={null} onCancel={onClose} width={900} title={zone.name}>
-
-      {/* shipping cost */}
-      <div style={{ marginBottom: 12, fontWeight: "bold", color: "#333" }}>
-        Shipping Cost:  <span style={{ color: "#e3010f" }}>EGP {zone.shippingCost}</span>
+    <Modal 
+      open={visible} 
+      footer={null} 
+      onCancel={onClose} 
+      width={900} 
+      title={
+        <div className="flex items-center gap-2 text-lg font-black text-slate-800 pb-2 border-b border-slate-100">
+          <span className="p-2 rounded-xl bg-[#9f1239]/10 text-[#9f1239]">📍</span>
+          <span>{zone.name}</span>
+        </div>
+      }
+      className="rounded-3xl overflow-hidden"
+    >
+      <div className="mb-4 mt-3 p-4 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-between shadow-2xs">
+        <span className="font-bold text-slate-700 flex items-center gap-2 text-sm md:text-base">
+          <span>رسوم الشحن والتوصيل لهذا النطاق الجغرافي:</span>
+        </span>
+        <span className="text-lg font-black text-[#9f1239] bg-white px-4 py-1 rounded-xl border border-rose-200 shadow-2xs">
+          {zone.shippingCost || "0.00"} EGP
+        </span>
       </div>
 
-
-      <div style={{ height: 500 }}>
+      <div className="h-[500px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
         <MapContainer
-          key={mapKey} // مفتاح لإعادة تهيئة الخريطة
+          key={mapKey}
           center={center}
-          // اضبط الزوم ليكون مناسباً لعرض المنطقة بالكامل، جرب 13
           zoom={13}
           style={{ height: "100%", width: "100%" }}
         >
-          {/* 🚀 إضافة المكون الذي يعالج مشكلة ظهور الخريطة داخل Modal */}
           <MapResizer visible={visible} />
 
           <TileLayer
@@ -69,18 +69,25 @@ export default function ZoneMapModal({ visible, onClose, zone }) {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* عرض المضلع */}
-          {latlngs.length > 0 && <Polygon positions={latlngs} />}
+          {latlngs.length > 0 && (
+            <Polygon 
+              positions={latlngs} 
+              pathOptions={{ color: "#9f1239", fillColor: "#9f1239", fillOpacity: 0.25, weight: 3 }} 
+            />
+          )}
 
-          {/* عرض النقاط (كما طلبنا سابقاً) */}
           {latlngs.map((position, index) => (
             <Marker
               key={index}
               position={position}
-              icon={markerIcon} // استخدام الأيقونة المحددة
+              icon={markerIcon}
             >
               <Popup>
-                نقطة {index + 1}: ({position[0].toFixed(5)}, {position[1].toFixed(5)})
+                <div className="font-bold text-center">
+                  <span className="text-[#9f1239]">نقطة {index + 1}</span>
+                  <br />
+                  <span className="text-xs text-slate-500 font-mono">({position[0].toFixed(5)}, {position[1].toFixed(5)})</span>
+                </div>
               </Popup>
             </Marker>
           ))}

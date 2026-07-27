@@ -23,7 +23,7 @@ export default function GrowthTrend() {
         setLoading(true);
         try {
             const res = await axios.get(
-                `https://api.maghni.acwad.tech/api/v1/user/dashboard/growth-trend?days=${days}`,
+                `https://api.elrayan.acwad.tech/api/v1/user/dashboard/growth-trend?days=${days}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setData(res.data.data || []);

@@ -64,7 +64,7 @@ export default function MostFavorited() {
                         >
                             <img
                                 src={
-                                    vendor.vendor_logo.startsWith("http")
+                                    vendor.vendor_logo?.startsWith("http") || vendor.vendor_logo?.includes("imagekit")
                                         ? vendor.vendor_logo
                                         : `https://ik.imagekit.io/yodskwyrw${vendor.vendor_logo}`
                                 }

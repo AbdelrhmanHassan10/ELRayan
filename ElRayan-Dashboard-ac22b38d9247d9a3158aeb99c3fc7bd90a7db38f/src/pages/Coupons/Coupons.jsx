@@ -64,20 +64,21 @@ export default function Coupons() {
   // إضافة
   const [showAdd, setShowAdd] = useState(false);
 
-  // API filters
-  const [status, setStatus] = useState("active");
+  // API filters - Default to "all" to show everything initially
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [sortOrder, setSortOrder] = useState("DESC");
-  const [discountType, setDiscountType] = useState("");
+  const [discountType, setDiscountType] = useState("all");
 
   const token = localStorage.getItem("token");
   const isArabic = i18n.language === "ar";
   const currency = isArabic ? "ج.م" : "EGP";
 
   const buildAPIUrl = () => {
-    let url = `/coupons?status=${status}&page=${page}&limit=${limit}&sortOrder=${sortOrder}`;
-    if (discountType) url += `&discountType=${discountType}`;
+    let url = `/coupons?page=${page}&limit=${limit}&sortOrder=${sortOrder}`;
+    if (status && status !== "all") url += `&status=${status}`;
+    if (discountType && discountType !== "all") url += `&discountType=${discountType}`;
     return url;
   };
 
@@ -87,14 +88,14 @@ export default function Coupons() {
       const res = await api.get(buildAPIUrl());
       setCoupons(res.data.data.items || []);
     } catch (err) {
-      toast.error(t("coupons.fetch_fail"));
+      toast.error(t("coupons.fetch_fail") || "Failed to fetch coupons");
     }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchCoupons();
-  }, []);
+  }, [status, page, limit, sortOrder, discountType]);
 
   const deleteCoupon = async (id) => {
     try {
@@ -291,44 +292,47 @@ export default function Coupons() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">{t("coupons.status")}</label>
-            <Select value={status} onChange={setStatus} className="w-full h-10">
-              <Select.Option value="active">{t("coupons.active")}</Select.Option>
-              <Select.Option value="inactive">{t("coupons.inactive")}</Select.Option>
+            <label className="text-xs font-bold text-slate-600">{t("coupons.status") || (isArabic ? "حالة الكوبون" : "Status")}</label>
+            <Select value={status} onChange={(val) => { setStatus(val); setPage(1); }} className="w-full h-10">
+              <Select.Option value="all">{isArabic ? "الكل (جميع الحالات)" : "All Statuses"}</Select.Option>
+              <Select.Option value="active">{t("coupons.active") || (isArabic ? "نشط ومتاح" : "Active")}</Select.Option>
+              <Select.Option value="inactive">{t("coupons.inactive") || (isArabic ? "متوقف أو منتهي" : "Inactive")}</Select.Option>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">{t("coupons.page")}</label>
-            <InputNumber min={1} value={page} onChange={setPage} className="w-full h-10 rounded-xl" />
+            <label className="text-xs font-bold text-slate-600">{t("coupons.page") || (isArabic ? "الصفحة" : "Page")}</label>
+            <InputNumber min={1} value={page} onChange={(val) => setPage(val || 1)} className="w-full h-10 rounded-xl" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">{t("coupons.limit")}</label>
-            <InputNumber min={1} value={limit} onChange={setLimit} className="w-full h-10 rounded-xl" />
+            <label className="text-xs font-bold text-slate-600">{t("coupons.limit") || (isArabic ? "العدد بالصفحة" : "Limit")}</label>
+            <InputNumber min={1} value={limit} onChange={(val) => { setLimit(val || 10); setPage(1); }} className="w-full h-10 rounded-xl" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">{t("coupons.sort_order")}</label>
-            <Select value={sortOrder} onChange={setSortOrder} className="w-full h-10">
-              <Select.Option value="ASC">{t("coupons.asc")}</Select.Option>
-              <Select.Option value="DESC">{t("coupons.desc")}</Select.Option>
+            <label className="text-xs font-bold text-slate-600">{t("coupons.sort_order") || (isArabic ? "الترتيب" : "Sort Order")}</label>
+            <Select value={sortOrder} onChange={(val) => { setSortOrder(val); setPage(1); }} className="w-full h-10">
+              <Select.Option value="DESC">{t("coupons.desc") || (isArabic ? "الأحدث أولاً" : "Newest First")}</Select.Option>
+              <Select.Option value="ASC">{t("coupons.asc") || (isArabic ? "الأقدم أولاً" : "Oldest First")}</Select.Option>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-600">{t("coupons.discount_type")}</label>
-            <Select value={discountType} onChange={setDiscountType} className="w-full h-10" allowClear placeholder={isArabic ? "الكل" : "All"}>
-              <Select.Option value="percentage">{t("coupons.percentage")}</Select.Option>
-              <Select.Option value="fixed_amount">{t("coupons.fixed")}</Select.Option>
-              <Select.Option value="category_specific">{t("coupons.category_specific")}</Select.Option>
-              <Select.Option value="product_specific">{t("coupons.product_specific")}</Select.Option>
-              <Select.Option value="free_shipping">{t("coupons.free_shipping")}</Select.Option>
+            <label className="text-xs font-bold text-slate-600">{t("coupons.discount_type") || (isArabic ? "نوع الخصم" : "Discount Type")}</label>
+            <Select value={discountType} onChange={(val) => { setDiscountType(val); setPage(1); }} className="w-full h-10">
+              <Select.Option value="all">{isArabic ? "الكل (جميع الأنواع)" : "All Types"}</Select.Option>
+              <Select.Option value="percentage">{t("coupons.percentage") || (isArabic ? "نسبة مئوية (%)" : "Percentage")}</Select.Option>
+              <Select.Option value="fixed_amount">{t("coupons.fixed") || (isArabic ? "مبلغ ثابت" : "Fixed Amount")}</Select.Option>
+              <Select.Option value="category_specific">{t("coupons.category_specific") || (isArabic ? "خصم على قسم معين" : "Category Specific")}</Select.Option>
+              <Select.Option value="product_specific">{t("coupons.product_specific") || (isArabic ? "خصم على منتج معين" : "Product Specific")}</Select.Option>
+              <Select.Option value="free_shipping">{t("coupons.free_shipping") || (isArabic ? "شحن مجاني" : "Free Shipping")}</Select.Option>
             </Select>
           </div>
           <Button
             onClick={fetchCoupons}
             type="primary"
             loading={loading}
-            className="h-10 bg-[#172554] hover:bg-[#1e3a8a] text-white rounded-xl font-bold"
+            className="h-10 bg-[#172554] hover:bg-[#1e3a8a] text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-2xs"
           >
-            <Search size={14} className="me-1" /> {t("coupons.apply_filters")}
+            <Search size={15} /> 
+            <span>{t("coupons.apply_filters") || (isArabic ? "تطبيق الفلاتر" : "Apply Filters")}</span>
           </Button>
         </div>
       </div>

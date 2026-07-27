@@ -64,7 +64,7 @@ export default function VendorsCategoriesStats() {
                         className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg shadow"
                     >
                         <img
-                            src={`https://ik.imagekit.io/yodskwyrw${cat.categoryIcon}`}
+                            src={cat.categoryIcon?.startsWith("http") || cat.categoryIcon?.includes("imagekit") ? cat.categoryIcon : `https://ik.imagekit.io/yodskwyrw${cat.categoryIcon}`}
                             alt={cat.categoryName}
                             className="w-12 h-12 rounded-full object-cover"
                         />

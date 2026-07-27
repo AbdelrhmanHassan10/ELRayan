@@ -30,7 +30,7 @@ export default function UsersStatistics() {
     setLoading(true);
     try {
       const res = await axios.get(
-        "https://api.maghni.acwad.tech/api/v1/user/dashboard/statistics",
+        "https://api.elrayan.acwad.tech/api/v1/user/dashboard/statistics",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setData(res.data.data);
