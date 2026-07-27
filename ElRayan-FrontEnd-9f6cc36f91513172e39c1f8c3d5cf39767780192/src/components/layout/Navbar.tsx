@@ -48,7 +48,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center shrink-0">
-            <img src="/logo.png" alt="Al Rayan - الريان" className="h-12 w-auto object-contain" />
+            <img src="/logo_secondry.png" alt="Al Rayan - الريان" className="h-12 w-auto object-contain" />
           </Link>
 
           {/* Desktop nav links */}
