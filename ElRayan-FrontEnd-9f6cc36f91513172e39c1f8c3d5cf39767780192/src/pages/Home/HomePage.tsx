@@ -80,8 +80,8 @@ export default function HomePage() {
                   <div className="relative w-full h-full bg-dark">
                     {banner.imagePath ? (
                       <>
-                        {banner.productId ? (
-                          <Link to={`/product/${banner.productId}`} className="absolute inset-0 z-0 block cursor-pointer">
+                        {(banner.productId || banner.product_id || banner.product?.id) ? (
+                          <Link to={`/product/${banner.productId || banner.product_id || banner.product?.id}`} className="absolute inset-0 z-0 block cursor-pointer">
                             <img src={banner.imagePath} alt={banner.title} className="w-full h-full object-fill" />
                           </Link>
                         ) : banner.link && banner.link !== '.' ? (
@@ -101,22 +101,19 @@ export default function HomePage() {
                               <p className="text-gray-200 text-sm md:text-base mb-4 max-w-xl">{banner.description}</p>
                             )}
                             <div className="flex gap-3">
-                              {banner.productId ? (
-                                <Link to={`/product/${banner.productId}`}
-                                  className="btn-primary inline-flex items-center gap-2 py-2 px-5 text-sm">
-                                  تسوق الآن <ArrowRight className="w-4 h-4" />
-                                </Link>
+                              {(banner.productId || banner.product_id || banner.product?.id) ? (
+                                (Number(banner.product?.discount) > 0 || Number(banner.discount) > 0) ? (
+                                  <Link to={`/product/${banner.productId || banner.product_id || banner.product?.id}`}
+                                    className="btn-primary inline-flex items-center gap-2 py-2 px-5 text-sm">
+                                    تسوق الآن <ArrowRight className="w-4 h-4" />
+                                  </Link>
+                                ) : null
                               ) : banner.link && banner.link !== '.' ? (
                                 <a href={banner.link}
                                   className="btn-primary inline-flex items-center gap-2 py-2 px-5 text-sm">
                                   اكتشف المزيد <ArrowRight className="w-4 h-4" />
                                 </a>
-                              ) : (
-                                <Link to="/shop"
-                                  className="btn-primary inline-flex items-center gap-2 py-2 px-5 text-sm">
-                                  تسوق الآن <ArrowRight className="w-4 h-4" />
-                                </Link>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </div>

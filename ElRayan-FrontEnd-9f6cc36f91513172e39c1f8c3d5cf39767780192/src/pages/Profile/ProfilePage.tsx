@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { User, Phone, Mail, Lock, Eye, EyeOff, Save } from 'lucide-react'
@@ -14,13 +14,23 @@ export default function ProfilePage() {
   const [showOld, setShowOld] = useState(false)
   const [showNew, setShowNew] = useState(false)
 
-  const { register: regProfile, handleSubmit: handleProfile, formState: { errors: errProfile } } = useForm({
+  const { register: regProfile, handleSubmit: handleProfile, reset: resetProfile, formState: { errors: errProfile } } = useForm({
     defaultValues: {
       fullName: user?.fullName ?? '',
       phoneNumber: user?.phoneNumber ?? '',
       gender: user?.gender ?? '',
     },
   })
+
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        fullName: user.fullName ?? '',
+        phoneNumber: user.phoneNumber ?? '',
+        gender: user.gender ?? '',
+      })
+    }
+  }, [user, resetProfile])
 
   const { register: regPwd, handleSubmit: handlePwd, reset: resetPwd, watch, formState: { errors: errPwd } } = useForm<{
     currentPassword: string
@@ -42,8 +52,8 @@ export default function ProfilePage() {
       const payload: any = { fullName: data.fullName };
       // NOTE: Backend currently rejects `phoneNumber` and `gender`.
       // Uncomment these once the backend DTO is updated to accept them.
-      // if (phone) payload.phoneNumber = phone; 
-      // if (data.gender) payload.gender = data.gender;
+      if (phone) payload.phoneNumber = phone; 
+      if (data.gender) payload.gender = data.gender;
 
       await authApi.editProfile(payload)
       
@@ -171,7 +181,8 @@ export default function ProfilePage() {
                     message: 'رقم هاتف مصري غير صالح (مثال: 01012345678)'
                   }
                 })}
-                className="input pr-9 text-left"
+                disabled={!!user?.phoneNumber}
+                className={`input pr-9 text-left ${user?.phoneNumber ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                 dir="ltr"
                 placeholder="01X XXXX XXXX"
               />

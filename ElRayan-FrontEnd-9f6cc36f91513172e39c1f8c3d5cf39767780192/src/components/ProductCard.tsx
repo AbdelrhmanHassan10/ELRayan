@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Heart, ShoppingCart, Star, Eye, Minus, Plus, Trash2 } from 'lucide-react'
 import type { Product } from '../types'
@@ -17,6 +18,7 @@ export default function ProductCard({ product, onFavoriteToggle }: ProductCardPr
   const { cart, addItem, updateItem, removeItem } = useCart()
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [isFav, setIsFav] = useState(product.isFavorite ?? false)
   const [addingToCart, setAddingToCart] = useState(false)
   const [updatingCart, setUpdatingCart] = useState(false)
@@ -71,6 +73,7 @@ export default function ProductCard({ product, onFavoriteToggle }: ProductCardPr
       await productsApi.toggleFavorite(product.id)
       const newVal = !isFav
       setIsFav(newVal)
+      queryClient.invalidateQueries({ queryKey: ['favorites'] })
       onFavoriteToggle?.(product.id, newVal)
     } catch {
       toast.error('فشل الإجراء')

@@ -102,7 +102,7 @@ export default function CartPage() {
             return (
               <div key={item.id} className="card p-4 flex gap-4">
                 <Link to={`/product/${item.productId}`} className="shrink-0">
-                  <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl overflow-hidden">
                     {mainImage ? (
                       <img
                         src={mainImage}
@@ -183,7 +183,7 @@ export default function CartPage() {
               )}
               <div className="flex justify-between text-gray-600">
                 <span>الشحن</span>
-                <span>{(cart.shippingAmount || 0) > 0 ? `${(cart.shippingAmount || 0).toFixed(2)} ج.م` : 'يحسب عند الدفع'}</span>
+                <span>{(cart.shippingAmount || 0) > 0 ? `${(cart.shippingAmount || 0).toFixed(2)} ج.م` : (cart.coupon ? 'مجاني' : 'يحسب عند الدفع')}</span>
               </div>
             </div>
 

@@ -15,15 +15,15 @@ export default function NewArrivalsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['new-arrivals-products-page', page],
-    queryFn: () => productsApi.getAll({ mostNew: true, page, limit: 20 }),
+    queryFn: () => productsApi.getAll({ mostNew: true, page, limit: 21 }),
     staleTime: 1000 * 30,
   })
 
   const products = data?.data?.data?.items ?? []
   const metadata = data?.data?.data?.metadata
   const meta = metadata ? {
-    total: metadata.totalItems,
-    totalPages: metadata.totalPages,
+    total: Math.min(metadata.totalItems, 42),
+    totalPages: Math.min(metadata.totalPages, 2),
     page: metadata.currentPage,
     limit: metadata.itemsPerPage,
   } : undefined
@@ -38,7 +38,7 @@ export default function NewArrivalsPage() {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">وصل حديثاً</h1>
           {meta && (
             <p className="text-sm font-medium text-gray-500 mt-1">
-              نعرض <span className="text-primary font-bold">{meta.total}</span> منتج جديد
+              نعرض أحدث <span className="text-primary font-bold">{meta.total}</span> منتج تم إضافتهم
             </p>
           )}
         </div>

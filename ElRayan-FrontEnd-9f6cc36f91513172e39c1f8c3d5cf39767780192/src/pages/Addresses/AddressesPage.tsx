@@ -20,31 +20,15 @@ const ADDRESS_TYPES: AddressType[] = ['home', 'work', 'other']
 const DEFAULT_LAT = 28.8222
 const DEFAULT_LNG = 30.8983
 
-// Delivery zone config
-const ZONE_CENTER_LAT = 28.8222
-const ZONE_CENTER_LNG = 30.8983
-const ZONE_RADIUS_KM = 15 // نطاق التوصيل بالكيلومتر
-
-// Haversine formula to calculate distance between two points
-function getDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// Backend handles delivery zones dynamically
 
 interface MapPickerProps {
   initialLat?: number
   initialLng?: number
   onSelect: (lat: number, lng: number, address?: string) => void
-  onZoneCheck?: (isInZone: boolean) => void
 }
 
-function MapPicker({ initialLat, initialLng, onSelect, onZoneCheck }: MapPickerProps) {
+function MapPicker({ initialLat, initialLng, onSelect }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMap = useRef<any>(null)
   const markerRef = useRef<any>(null)
@@ -86,22 +70,12 @@ function MapPicker({ initialLat, initialLng, onSelect, onZoneCheck }: MapPickerP
       const marker = L.marker([startLat, startLng], { draggable: true }).addTo(map)
       markerRef.current = marker
 
-      // Draw delivery zone circle
-      L.circle([ZONE_CENTER_LAT, ZONE_CENTER_LNG], {
-        radius: ZONE_RADIUS_KM * 1000,
-        color: '#8B1A2B',
-        fillColor: '#8B1A2B',
-        fillOpacity: 0.08,
-        weight: 2,
-        dashArray: '8 4',
-      }).addTo(map)
+
 
       const handleMove = async (lat: number, lng: number) => {
         const addr = await reverseGeocode(lat, lng)
         setAddress(addr)
         onSelect(lat, lng, addr)
-        const dist = getDistanceKm(lat, lng, ZONE_CENTER_LAT, ZONE_CENTER_LNG)
-        onZoneCheck?.(dist <= ZONE_RADIUS_KM)
       }
 
       handleMove(startLat, startLng)
@@ -165,7 +139,6 @@ export default function AddressesPage() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [coordsError, setCoordsError] = useState(false)
-  const [isInZone, setIsInZone] = useState(true)
 
   const { data, isLoading } = useQuery({
     queryKey: ['addresses'],
@@ -225,10 +198,6 @@ export default function AddressesPage() {
       setCoordsError(true)
       return
     }
-    if (!isInZone) {
-      toast.error('الموقع المحدد خارج نطاق التوصيل (الفشن، بني سويف). يرجى اختيار موقع داخل النطاق.')
-      return
-    }
     setCoordsError(false)
     const payload = { ...formData, latitude: coords.lat, longitude: coords.lng }
     if (editId) {
@@ -259,21 +228,12 @@ export default function AddressesPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Zone info banner */}
-      <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl mb-6 flex items-start gap-3">
-        <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0 mt-0.5">
-          <MapPin className="w-5 h-5" />
-        </div>
-        <div>
-          <p className="font-bold text-gray-900 text-sm">نطاق التوصيل: مركز الفشن، بني سويف</p>
-          <p className="text-xs text-gray-500 mt-0.5">نقوم بالتوصيل في نطاق {ZONE_RADIUS_KM} كم من مركز الفشن. يرجى اختيار عنوان داخل هذا النطاق.</p>
-        </div>
-      </div>
+      {/* Dynamic zone pricing handled by backend */}
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">عناويني</h1>
         <button
-          onClick={() => { setShowForm(v => !v); setEditId(null); setCoords(null); reset(); setIsInZone(true) }}
+          onClick={() => { setShowForm(v => !v); setEditId(null); setCoords(null); reset() }}
           className="btn-primary flex items-center gap-2 py-2 text-sm"
         >
           <Plus className="w-4 h-4" /> إضافة عنوان
@@ -312,17 +272,11 @@ export default function AddressesPage() {
                 setCoords({ lat, lng })
                 setCoordsError(false)
               }}
-              onZoneCheck={(inZone) => setIsInZone(inZone)}
             />
             {coordsError && (
               <p className="text-xs text-red-500 -mt-2">يرجى تحديد موقعك على الخريطة</p>
             )}
-            {!isInZone && coords && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2 -mt-1">
-                <span className="text-lg">⚠️</span>
-                <span>هذا الموقع خارج نطاق التوصيل (مركز الفشن، بني سويف). يرجى اختيار موقع داخل الدائرة المحددة.</span>
-              </div>
-            )}
+
             {coords && (
               <p className="text-xs text-gray-400">
                 الإحداثيات: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}

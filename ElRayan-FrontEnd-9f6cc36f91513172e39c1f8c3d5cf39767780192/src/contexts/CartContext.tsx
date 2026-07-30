@@ -68,7 +68,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     await fetchCart()
   }
 
-  const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0
+  const cartCount = cart?.items?.length ?? 0
 
   return (
     <CartContext.Provider value={{

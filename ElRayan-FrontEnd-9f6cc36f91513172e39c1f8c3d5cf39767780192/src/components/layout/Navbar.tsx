@@ -3,6 +3,9 @@ import { useState, useRef, useEffect } from 'react'
 import { ShoppingCart, Bell, User, Search, Menu, X, Heart, ChevronDown, LogOut, Package, MapPin, Tag, RotateCcw, MessageSquare } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
+import { useQuery } from '@tanstack/react-query'
+import { productsApi } from '../../api/products'
+import { notificationsApi } from '../../api/notifications'
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
@@ -13,6 +16,22 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const profileRef = useRef<HTMLDivElement>(null)
+
+  const { data: favData } = useQuery({
+    queryKey: ['favorites'],
+    queryFn: () => productsApi.getAll({ isFavorite: true, limit: 100 }),
+    enabled: isAuthenticated,
+  })
+  const favoritesCount = favData?.data?.data?.items?.length ?? 0
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications-navbar'],
+    queryFn: () => notificationsApi.getMyNotifications({ limit: 50 }),
+    enabled: isAuthenticated,
+    refetchInterval: 15000,
+  })
+  const rawNotifs = notifData?.data?.data as any
+  const unreadCount = rawNotifs?.unreadCount ?? 0
 
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
 
@@ -84,11 +103,21 @@ export default function Navbar() {
           <div className="flex items-center gap-1">
             {isAuthenticated ? (
               <>
-                <Link to="/favorites" className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <Link to="/favorites" className="relative p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                   <Heart className="w-5 h-5" />
+                  {favoritesCount > 0 && (
+                    <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-primary text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {favoritesCount > 9 ? '9+' : favoritesCount}
+                    </span>
+                  )}
                 </Link>
-                <Link to="/notifications" className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <Link to="/notifications" className="relative p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                   <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -end-0.5 w-4 h-4 bg-primary text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link to="/cart" className="relative p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                   <ShoppingCart className="w-5 h-5" />
@@ -115,7 +144,8 @@ export default function Navbar() {
                     <div className="absolute end-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="font-semibold text-gray-900 text-sm truncate">{user?.fullName}</p>
-                        <p className="text-gray-400 text-xs truncate">{user?.email}</p>
+                        {user?.email && <p className="text-gray-400 text-xs truncate">{user.email}</p>}
+                        {user?.phoneNumber && <p className="text-gray-400 text-xs truncate dir-ltr text-right">{user.phoneNumber}</p>}
                       </div>
                       {[
                         { to: '/profile', icon: User, label: 'ملفي الشخصي' },

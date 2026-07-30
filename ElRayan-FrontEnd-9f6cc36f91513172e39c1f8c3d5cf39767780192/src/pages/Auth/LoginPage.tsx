@@ -12,10 +12,13 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<{
+  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<{
     identifier: string
     password: string
   }>()
+
+  const identifierVal = watch('identifier') || '';
+  const isNumericIdentifier = /^\d+$/.test(identifierVal);
 
   const onSubmit = async (data: { identifier: string; password: string }) => {
     setLoading(true)
@@ -64,7 +67,16 @@ export default function LoginPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني أو الهاتف</label>
               <input
-                {...register('identifier', { required: 'مطلوب' })}
+                {...register('identifier', { 
+                  required: 'مطلوب',
+                  onChange: (e) => {
+                    const val = e.target.value;
+                    if (/^\d+$/.test(val) && val.length > 11) {
+                      setValue('identifier', val.slice(0, 11));
+                    }
+                  }
+                })}
+                maxLength={isNumericIdentifier ? 11 : undefined}
                 placeholder="email@example.com أو الهاتف"
                 className="input"
                 autoComplete="username"
