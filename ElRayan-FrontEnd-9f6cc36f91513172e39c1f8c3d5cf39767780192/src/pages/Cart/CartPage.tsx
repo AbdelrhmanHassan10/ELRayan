@@ -100,14 +100,14 @@ export default function CartPage() {
             const mainImage = item.productImages?.[0]
 
             return (
-              <div key={item.id} className="card p-4 flex gap-4">
+              <div key={item.id} className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex gap-4 sm:gap-5 group relative">
                 <Link to={`/product/${item.productId}`} className="shrink-0">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl overflow-hidden">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-gray-50 border border-gray-100 rounded-2xl overflow-hidden flex items-center justify-center relative group-hover:border-primary/20 transition-colors">
                     {mainImage ? (
                       <img
                         src={mainImage}
                         alt={item.productName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-2 mix-blend-multiply"
                         onError={e => { (e.target as HTMLImageElement).src = '/placeholder.png' }}
                       />
                     ) : (
@@ -118,44 +118,54 @@ export default function CartPage() {
                   </div>
                 </Link>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link to={`/product/${item.productId}`} className="font-medium text-gray-900 hover:text-primary transition-colors line-clamp-2 text-sm">
-                      {item.productName}
-                    </Link>
-                    <button
-                      onClick={() => removeItem(item.id).then(() => toast.success('تم الإزالة من السلة')).catch(() => toast.error('فشل'))}
-                      className="shrink-0 p-1 text-gray-300 hover:text-red-500 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <Link to={`/product/${item.productId}`} className="font-bold text-gray-800 text-sm sm:text-base hover:text-primary transition-colors line-clamp-2 leading-tight">
+                        {item.productName}
+                      </Link>
+                      <button
+                        onClick={() => removeItem(item.id).then(() => toast.success('تم الإزالة من السلة')).catch(() => toast.error('فشل'))}
+                        className="shrink-0 p-1.5 text-gray-400 bg-gray-50 rounded-full hover:bg-red-50 hover:text-red-500 transition-all opacity-80 group-hover:opacity-100"
+                        title="إزالة المنتج"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {!item.inStock && (
+                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-md bg-red-50 text-red-600 text-xs font-medium">
+                        نفذ المخزون
+                      </span>
+                    )}
                   </div>
 
-                  {!item.inStock && (
-                    <p className="text-xs text-red-500 mt-1">نفذ المخزون</p>
-                  )}
-
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-end justify-between mt-4">
+                    <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                       <button
                         onClick={() => item.quantity > 1 ? updateItem(item.id, item.quantity - 1) : removeItem(item.id)}
-                        className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:bg-white transition-colors text-gray-600 hover:text-primary"
                       >
-                        <Minus className="w-3.5 h-3.5 text-gray-600" />
+                        <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="px-3 py-1.5 font-semibold text-gray-900 text-sm min-w-[32px] text-center">{item.quantity}</span>
+                      <span className="w-8 sm:w-10 text-center font-bold text-gray-900 text-sm select-none">
+                        {item.quantity}
+                      </span>
                       <button
                         onClick={() => updateItem(item.id, item.quantity + 1)}
-                        className="px-2.5 py-1.5 hover:bg-gray-50 transition-colors"
+                        className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center hover:bg-white transition-colors text-gray-600 hover:text-primary"
                       >
-                        <Plus className="w-3.5 h-3.5 text-gray-600" />
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     <div className="text-end">
-                      <p className="font-bold text-gray-900">{(finalPrice * item.quantity).toFixed(2)} ج.م</p>
+                      <div className="flex items-baseline justify-end gap-1">
+                        <span className="font-black text-lg sm:text-xl text-primary">{(finalPrice * item.quantity).toFixed(2)}</span>
+                        <span className="text-xs font-bold text-gray-500">ج.م</span>
+                      </div>
                       {item.quantity > 1 && (
-                        <p className="text-xs text-gray-400">{finalPrice.toFixed(2)} للوحدة</p>
+                        <p className="text-xs font-medium text-gray-400 mt-0.5">{finalPrice.toFixed(2)} ج.م للوحدة</p>
                       )}
                     </div>
                   </div>

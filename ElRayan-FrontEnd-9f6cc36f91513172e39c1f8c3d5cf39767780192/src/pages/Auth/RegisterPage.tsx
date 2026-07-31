@@ -20,18 +20,13 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>()
+  const { register, handleSubmit, watch, setError, clearErrors, setValue, formState: { errors } } = useForm<RegisterForm>()
   const password = watch('password')
 
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true)
     try {
-      let phone = data.phoneNumber;
-      if (phone && phone.startsWith('01') && phone.length === 11) {
-        phone = '+20' + phone.substring(1);
-      } else if (phone && !phone.startsWith('+')) {
-        phone = '+' + phone;
-      }
+      let phone = '+20' + data.phoneNumber;
 
       await authApi.signUp({
         email: data.email,
@@ -45,8 +40,25 @@ export default function RegisterPage() {
     } catch (e: any) {
       console.error('Register Error:', e?.response?.data);
       const resData = e?.response?.data;
-      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل إنشاء الحساب');
-      toast.error(msg)
+      
+      if (resData?.errors && Array.isArray(resData.errors)) {
+        resData.errors.forEach((err: any) => {
+          const path = err.path?.toLowerCase() || '';
+          const msg = err.msg || '';
+          if (path.includes('email') || msg.includes('بريد') || msg.includes('email')) setError('email', { message: msg });
+          else if (path.includes('phone') || msg.includes('هاتف') || msg.includes('phone')) setError('phoneNumber', { message: msg });
+          else if (path.includes('password') || msg.includes('مرور') || msg.includes('password')) setError('password', { message: msg });
+          else if (path.includes('name') || msg.includes('اسم')) setError('fullName', { message: msg });
+          else toast.error(msg);
+        });
+      } else {
+        const msg = Array.isArray(resData?.message) ? resData.message[0] : (resData?.message ?? 'فشل إنشاء الحساب');
+        const lowerMsg = msg.toLowerCase();
+        if (lowerMsg.includes('بريد') || lowerMsg.includes('email')) setError('email', { message: msg });
+        else if (lowerMsg.includes('هاتف') || lowerMsg.includes('phone')) setError('phoneNumber', { message: msg });
+        else if (lowerMsg.includes('مرور') || lowerMsg.includes('password')) setError('password', { message: msg });
+        else toast.error(msg);
+      }
     } finally {
       setLoading(false)
     }
@@ -90,20 +102,42 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف *</label>
-              <input
-                {...register('phoneNumber', {
-                  required: 'رقم الهاتف مطلوب',
-                  pattern: {
-                    value: /^(010|011|012|015)\d{8}$/,
-                    message: 'يجب أن يكون رقم مصري صحيح (مثال: 01012345678)'
-                  }
-                })}
-                type="tel"
-                autoComplete="off"
-                placeholder="01X XXXX XXXX"
-                className="input text-left"
-                dir="ltr"
-              />
+              <div className="relative flex items-center" dir="ltr">
+                <span className="absolute left-3 text-gray-500 font-medium z-10" style={{ pointerEvents: 'none' }}>+20</span>
+                <input
+                  {...register('phoneNumber', {
+                    required: 'رقم الهاتف مطلوب',
+                    pattern: {
+                      value: /^(10|11|12|15)\d{8}$/,
+                      message: 'يجب أن يكون 10 أرقام ويبدأ بـ 10, 11, 12, أو 15'
+                    },
+                    onChange: (e) => {
+                      let val = e.target.value.replace(/\D/g, ''); // keep only digits
+                      let invalidPrefix = false;
+                      if (val.length >= 1 && val[0] !== '1') {
+                        val = ''; // first digit must be 1
+                        invalidPrefix = true;
+                      }
+                      if (val.length >= 2 && !['0', '1', '2', '5'].includes(val[1])) {
+                        val = val[0]; // second digit must be 0, 1, 2, or 5
+                        invalidPrefix = true;
+                      }
+                      setValue('phoneNumber', val);
+                      
+                      if (invalidPrefix) {
+                        setError('phoneNumber', { type: 'manual', message: 'عذراً، يجب أن يبدأ الرقم بـ 10, 11, 12, أو 15 فقط' });
+                      } else {
+                        clearErrors('phoneNumber');
+                      }
+                    }
+                  })}
+                  type="tel"
+                  maxLength={10}
+                  autoComplete="off"
+                  placeholder="10XXXXXXXX"
+                  className="input pl-[3.5rem] text-left"
+                />
+              </div>
               {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber.message}</p>}
             </div>
 

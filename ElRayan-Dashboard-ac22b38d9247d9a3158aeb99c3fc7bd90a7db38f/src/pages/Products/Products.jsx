@@ -43,6 +43,14 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [meta, setMeta] = useState({});
   const [loading, setLoading] = useState(false);
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    visible: 0,
+    hidden: 0,
+    lowStock: 0,
+    loading: true
+  });
+
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -99,6 +107,59 @@ export default function Products() {
   };
 
   // ===========================
+  // Fetch Global Stats for All Products (Paginated)
+  // ===========================
+  const fetchGlobalStats = async () => {
+    try {
+      setGlobalStats(prev => ({ ...prev, loading: true }));
+      
+      // Fetch first page to get metadata (using max allowed limit, e.g. 100)
+      const maxLimit = 100;
+      const firstRes = await api.get(`/product?page=1&limit=${maxLimit}`);
+      
+      if (!firstRes.data.success) {
+        throw new Error("Failed to fetch initial stats data");
+      }
+
+      const metaInfo = firstRes.data.data.metadata;
+      const totalPages = metaInfo.totalPages || 1;
+      let allItems = [...(firstRes.data.data.items || [])];
+
+      // Fetch remaining pages in parallel if there are more
+      if (totalPages > 1) {
+        const promises = [];
+        for (let p = 2; p <= totalPages; p++) {
+          promises.push(api.get(`/product?page=${p}&limit=${maxLimit}`).catch(() => null));
+        }
+        
+        const responses = await Promise.all(promises);
+        responses.forEach(res => {
+          if (res?.data?.success) {
+            allItems = allItems.concat(res.data.data.items || []);
+          }
+        });
+      }
+
+      setGlobalStats({
+        total: metaInfo.totalItems || allItems.length,
+        visible: allItems.filter(p => !p.isHidden).length,
+        hidden: allItems.filter(p => p.isHidden).length,
+        lowStock: allItems.filter(p => p.stock <= 5).length,
+        allData: allItems,
+        loading: false
+      });
+    } catch (e) {
+      console.error(e);
+      setGlobalStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    fetchGlobalStats();
+  }, []);
+
+
+  // ===========================
   // Delete Product
   // ===========================
   const deleteProduct = async (id) => {
@@ -106,6 +167,7 @@ export default function Products() {
       await api.delete(`/product/${id}`);
       message.success(isArabic ? "تم حذف المنتج بنجاح" : "Product deleted successfully");
       fetchProducts();
+      fetchGlobalStats();
     } catch (e) {
       console.error(e);
       message.error(isArabic ? "فشل حذف المنتج" : "Failed to delete product");
@@ -120,6 +182,7 @@ export default function Products() {
       await api.patch(`/product/toggle-hidden/${id}`);
       message.success(isArabic ? "تم تحديث حالة الظهور" : "Visibility updated");
       fetchProducts();
+      fetchGlobalStats();
     } catch (e) {
       console.error(e);
       message.error(isArabic ? "فشل تحديث الحالة" : "Failed to update visibility");
@@ -183,18 +246,39 @@ export default function Products() {
   }, [page, limit, selectedMain, selectedSub]);
 
   // Stats calculation
-  const totalProducts = meta.totalItems || products.length;
-  const visibleProductsCount = products.filter(p => !p.isHidden).length;
-  const hiddenProductsCount = products.filter(p => p.isHidden).length;
-  const lowStockCount = products.filter(p => p.stock <= 5).length;
+  const totalProducts = globalStats.total || meta.totalItems || products.length;
+  const visibleProductsCount = globalStats.loading ? "..." : globalStats.visible;
+  const hiddenProductsCount = globalStats.loading ? "..." : globalStats.hidden;
+  const lowStockCount = globalStats.loading ? "..." : globalStats.lowStock;
+
+  const isClientSideFilter = quickFilter !== "all";
 
   // Filtered products for quick stats card click
-  const filteredProducts = products.filter(p => {
-    if (quickFilter === "visible") return !p.isHidden;
-    if (quickFilter === "hidden") return p.isHidden;
-    if (quickFilter === "low") return p.stock <= 5;
-    return true;
-  });
+  const filteredProducts = isClientSideFilter
+    ? (globalStats.allData || []).filter(p => {
+        // Quick Filters
+        if (quickFilter === "visible" && p.isHidden) return false;
+        if (quickFilter === "hidden" && !p.isHidden) return false;
+        if (quickFilter === "low" && p.stock > 5) return false;
+        
+        // Category Filters
+        if (selectedMain && selectedMain !== "all") {
+          const mainId = p.main_category_id || p.mainCategory?.id;
+          if (mainId != selectedMain) return false;
+        }
+        if (selectedSub && selectedSub !== "all") {
+          const subId = p.sub_category_id || p.subCategory?.id;
+          if (subId != selectedSub) return false;
+        }
+        return true;
+      })
+    : products; // Default to server-paginated data when "all"
+
+  const displayProducts = isClientSideFilter
+    ? filteredProducts.slice((page - 1) * limit, page * limit)
+    : filteredProducts;
+
+  const currentTotal = isClientSideFilter ? filteredProducts.length : (meta.totalItems || products.length);
 
   // ===========================
   // Table Columns
@@ -395,7 +479,7 @@ export default function Products() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         {/* Card 1: إجمالي المنتجات */}
         <div 
-          onClick={() => setQuickFilter("all")}
+          onClick={() => { setQuickFilter("all"); setPage(1); }}
           className={`relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden ${
             quickFilter === "all"
               ? "bg-gradient-to-br from-[#9f1239]/15 via-[#9f1239]/5 to-white border-[#9f1239] shadow-md ring-2 ring-[#9f1239]/20"
@@ -425,7 +509,7 @@ export default function Products() {
 
         {/* Card 2: منتجات معروضة */}
         <div 
-          onClick={() => setQuickFilter(quickFilter === "visible" ? "all" : "visible")}
+          onClick={() => { setQuickFilter(quickFilter === "visible" ? "all" : "visible"); setPage(1); }}
           className={`relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden ${
             quickFilter === "visible"
               ? "bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-white border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
@@ -455,7 +539,7 @@ export default function Products() {
 
         {/* Card 3: منتجات مخفية */}
         <div 
-          onClick={() => setQuickFilter(quickFilter === "hidden" ? "all" : "hidden")}
+          onClick={() => { setQuickFilter(quickFilter === "hidden" ? "all" : "hidden"); setPage(1); }}
           className={`relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden ${
             quickFilter === "hidden"
               ? "bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-white border-rose-500 shadow-md ring-2 ring-rose-500/20"
@@ -485,7 +569,7 @@ export default function Products() {
 
         {/* Card 4: مخزون منخفض */}
         <div 
-          onClick={() => setQuickFilter(quickFilter === "low" ? "all" : "low")}
+          onClick={() => { setQuickFilter(quickFilter === "low" ? "all" : "low"); setPage(1); }}
           className={`relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer overflow-hidden ${
             quickFilter === "low"
               ? "bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-white border-amber-500 shadow-md ring-2 ring-amber-500/20"
@@ -628,7 +712,7 @@ export default function Products() {
           </div>
           <span className="text-xs font-bold text-slate-500 px-3.5 py-1.5 bg-slate-50 rounded-full border border-slate-200">
             {quickFilter !== "all" 
-              ? (isArabic ? `معروض حسب التصفية: ${filteredProducts.length} من أصل ${totalProducts}` : `Showing: ${filteredProducts.length} of ${totalProducts}`)
+              ? (isArabic ? `معروض حسب التصفية: ${currentTotal} من أصل ${totalProducts}` : `Showing: ${currentTotal} of ${totalProducts}`)
               : (isArabic ? `إجمالي النتائج: ${totalProducts}` : `Total: ${totalProducts}`)}
           </span>
         </div>
@@ -638,7 +722,7 @@ export default function Products() {
             <Spin size="large" />
             <span className="text-sm font-medium text-slate-500 animate-pulse">{isArabic ? "جاري تحميل قائمة المنتجات..." : "Loading products..."}</span>
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : displayProducts.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Empty description={isArabic ? "لا توجد منتجات مطابقة للتصفية الحالية أو الفلاتر" : "No products matching current filter"} />
             {(selectedMain || selectedSub || quickFilter !== "all") && (
@@ -658,10 +742,10 @@ export default function Products() {
           <Table
             rowKey="id"
             columns={columns}
-            dataSource={filteredProducts}
+            dataSource={displayProducts}
             pagination={{
-              current: meta.currentPage || page,
-              total: meta.totalItems || filteredProducts.length,
+              current: isClientSideFilter ? page : (meta.currentPage || page),
+              total: currentTotal,
               pageSize: limit,
               showSizeChanger: true,
               onChange: (p, pageSize) => {

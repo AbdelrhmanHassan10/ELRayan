@@ -80,19 +80,17 @@ export default function UsersPage() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // When filtering client-side, let's fetch a slightly larger batch to ensure good filtering
-            const isFiltering = roleFilter !== "all" || statusFilter !== "all" || genderFilter !== "all" || searchQuery.trim() !== "";
-            const fetchLimit = isFiltering ? 100 : limit;
-            const fetchPage = isFiltering ? 1 : page;
-
             const params = {
-                page: fetchPage,
-                limit: fetchLimit,
-                sortOrder: "DESC",
+                page,
+                limit,
+                sortOrder: sortBy === "oldest" ? "ASC" : "DESC",
+                sortBy: sortBy === "name_asc" ? "fullName" : "createdAt"
             };
-            if (searchQuery.trim()) {
-                params.keyword = searchQuery.trim();
-            }
+
+            if (searchQuery.trim()) params.keyword = searchQuery.trim();
+            if (roleFilter !== "all") params.role = roleFilter;
+            if (statusFilter !== "all") params.status = statusFilter;
+            if (genderFilter !== "all") params.gender = genderFilter;
 
             const [usersRes, statsRes] = await Promise.all([
                 api.get(`/user`, { params }),
@@ -137,74 +135,20 @@ export default function UsersPage() {
 
     // Calculate logical statistics (Fallback to items if backend stats absent)
     const computedTotalUsers = useMemo(() => {
-        return statsData?.totalUsers || totalItems || users.length || 0;
-    }, [statsData, totalItems, users]);
+        return statsData?.totalUsers || totalItems || 0;
+    }, [statsData, totalItems]);
 
     const computedActiveUsers = useMemo(() => {
-        if (statsData?.activeUsers !== undefined && statsData?.activeUsers !== null) {
-            return statsData.activeUsers;
-        }
-        return users.filter(u => u.status !== "blocked").length;
-    }, [statsData, users]);
+        return statsData?.activeUsers || 0;
+    }, [statsData]);
 
     const computedBlockedUsers = useMemo(() => {
-        if (statsData?.blockedUsers !== undefined && statsData?.blockedUsers !== null) {
-            return statsData.blockedUsers;
-        }
-        return users.filter(u => u.status === "blocked").length;
-    }, [statsData, users]);
+        return statsData?.blockedUsers || 0;
+    }, [statsData]);
 
     const computedVerifiedUsers = useMemo(() => {
-        if (statsData?.verifiedUsers !== undefined && statsData?.verifiedUsers !== null) {
-            return statsData.verifiedUsers;
-        }
-        return users.filter(u => u.isEmailVerified).length;
-    }, [statsData, users]);
-
-    // Client-side Filtering and Sorting
-    const filteredAndSortedUsers = useMemo(() => {
-        let result = [...users];
-
-        if (searchQuery.trim()) {
-            const q = searchQuery.trim().toLowerCase();
-            result = result.filter(u => 
-                (u.fullName && u.fullName.toLowerCase().includes(q)) ||
-                (u.email && u.email.toLowerCase().includes(q)) ||
-                (u.phoneNumber && u.phoneNumber.includes(q))
-            );
-        }
-
-        if (roleFilter !== "all") {
-            result = result.filter(u => (u.role || "").toLowerCase() === roleFilter.toLowerCase());
-        }
-
-        if (statusFilter !== "all") {
-            if (statusFilter === "blocked") {
-                result = result.filter(u => u.status === "blocked");
-            } else {
-                result = result.filter(u => u.status !== "blocked");
-            }
-        }
-
-        if (genderFilter !== "all") {
-            result = result.filter(u => (u.gender || "").toLowerCase() === genderFilter.toLowerCase());
-        }
-
-        result.sort((a, b) => {
-            if (sortBy === "newest") {
-                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-            }
-            if (sortBy === "oldest") {
-                return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-            }
-            if (sortBy === "name_asc") {
-                return (a.fullName || "").localeCompare(b.fullName || "");
-            }
-            return 0;
-        });
-
-        return result;
-    }, [users, searchQuery, roleFilter, statusFilter, genderFilter, sortBy]);
+        return statsData?.verifiedUsers || 0;
+    }, [statsData]);
 
     // View User Details
     const fetchUserDetails = async (id) => {
@@ -691,8 +635,8 @@ export default function UsersPage() {
                             </h2>
                             <span className="text-xs text-slate-400 font-medium">
                                 {isArabic
-                                    ? `عرض النتائج المصفاة (${filteredAndSortedUsers.length} مستخدم)`
-                                    : `Showing filtered results (${filteredAndSortedUsers.length} users)`}
+                                    ? `إجمالي الحسابات (${users.length} في هذه الصفحة)`
+                                    : `Showing (${users.length} users on this page)`}
                             </span>
                         </div>
                     </div>
@@ -705,7 +649,7 @@ export default function UsersPage() {
                             {isArabic ? "جاري تحميل وتصفية قائمة المستخدمين الملكية..." : "Loading and filtering users log..."}
                         </span>
                     </div>
-                ) : filteredAndSortedUsers.length === 0 ? (
+                ) : users.length === 0 ? (
                     <div className="py-16">
                         <Empty description={<span className="font-bold text-slate-400">{isArabic ? "لا توجد حسابات تطابق معايير الفلترة المحددة" : "No users match the selected filters"}</span>}>
                             <Button
@@ -720,7 +664,7 @@ export default function UsersPage() {
                     <div className="overflow-x-auto">
                         <Table
                             columns={columns}
-                            dataSource={filteredAndSortedUsers}
+                            dataSource={users}
                             rowKey="id"
                             pagination={false}
                             className="overflow-x-auto"

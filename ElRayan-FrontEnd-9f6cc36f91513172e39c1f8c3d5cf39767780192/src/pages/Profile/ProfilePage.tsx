@@ -39,20 +39,12 @@ export default function ProfilePage() {
   }>()
   const newPwd = watch('newPassword')
 
-  const onProfileSave = async (data: { fullName: string; phoneNumber: string; gender: string }) => {
+  const onProfileSave = async (data: { fullName: string; gender: string }) => {
     setSaving(true)
     try {
-      let phone = data.phoneNumber;
-      if (phone && phone.startsWith('01') && phone.length === 11) {
-        phone = '+20' + phone.substring(1);
-      } else if (phone && !phone.startsWith('+')) {
-        phone = '+' + phone;
-      }
 
       const payload: any = { fullName: data.fullName };
-      // NOTE: Backend currently rejects `phoneNumber` and `gender`.
-      // Uncomment these once the backend DTO is updated to accept them.
-      if (phone) payload.phoneNumber = phone; 
+      // NOTE: Backend currently rejects `gender`.
       if (data.gender) payload.gender = data.gender;
 
       await authApi.editProfile(payload)
@@ -174,20 +166,13 @@ export default function ProfilePage() {
             <div className="relative">
               <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
-                {...regProfile('phoneNumber', {
-                  required: 'رقم الهاتف مطلوب',
-                  pattern: {
-                    value: /^(010|011|012|015)\d{8}$/,
-                    message: 'رقم هاتف مصري غير صالح (مثال: 01012345678)'
-                  }
-                })}
-                disabled={!!user?.phoneNumber}
-                className={`input pr-9 text-left ${user?.phoneNumber ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                value={user?.phoneNumber ?? ''}
+                disabled
+                className="input pr-9 text-left bg-gray-50 cursor-not-allowed"
                 dir="ltr"
                 placeholder="01X XXXX XXXX"
               />
             </div>
-            {errProfile.phoneNumber && <p className="text-xs text-red-500 mt-1">{errProfile.phoneNumber.message}</p>}
           </div>
 
           <div>

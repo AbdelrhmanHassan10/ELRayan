@@ -73,44 +73,42 @@ export default function Orders() {
     return url;
   };
 
-  // Safe fetch to prevent 400 Bad Request when limit is too high or unsupported query params exist
-  const fetchOrdersSafely = async (targetPage, targetLimit) => {
-    try {
-      // ONLY send safe pagination params (page & limit) to prevent backend 400 Bad Request validation errors
-      const res = await api.get(`/orders?page=${targetPage}&limit=${targetLimit}`);
-      return res.data?.data;
-    } catch (err) {
-      // If targetLimit caused a 400 Bad Request (e.g. backend max limit is 50 or 20), automatically fallback
-      if (targetLimit > 20) {
-        console.warn(`Limit ${targetLimit} rejected, falling back to limit=20`);
-        const fallbackRes = await api.get(`/orders?page=${targetPage}&limit=20`);
-        return fallbackRes.data?.data;
-      }
-      throw err;
-    }
-  };
-
   // Fetch Orders and Dashboard Statistics
   const fetchOrders = async () => {
     try {
       setLoadingOrders(true);
       
-      // If user is actively filtering, try fetching a larger batch (e.g. 50 or 100) for comprehensive client-side filtering
-      const isFiltering = statusFilter !== "all" || paymentMethodFilter !== "all" || paymentStatusFilter !== "all" || searchQuery.trim() !== "";
-      const fetchLimit = isFiltering ? 50 : limit;
-      const fetchPage = isFiltering ? 1 : page;
+      const params = {
+        page,
+        limit,
+        sortOrder: sortBy.includes('amount') ? undefined : (sortBy === 'oldest' ? 'ASC' : 'DESC'),
+      };
+      
+      if (statusFilter !== "all") params.status = statusFilter;
+      if (paymentMethodFilter !== "all") params.paymentMethod = paymentMethodFilter;
+      if (paymentStatusFilter !== "all") params.paymentStatus = paymentStatusFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
 
       // Parallel requests: get paginated orders + get real store statistics from dashboard endpoint
-      const [ordersData, dashRes] = await Promise.all([
-        fetchOrdersSafely(fetchPage, fetchLimit),
+      const [ordersRes, dashRes] = await Promise.all([
+        api.get('/orders', { params }).catch((err) => {
+          console.warn("Failed with params, trying fallback", err);
+          return api.get('/orders', { params: { page, limit: 20 } });
+        }),
         axios.get("https://api.elrayan.acwad.tech/api/v1/orders/dashboard", {
           headers: { Authorization: `Bearer ${token}`, lang: language }
         }).catch(() => null)
       ]);
 
-      const fetchedItems = ordersData?.items || [];
+      const ordersData = ordersRes?.data?.data || ordersRes?.data || {};
+
+
+      // Make parsing robust in case the API returns an array directly or a different object structure
+      const fetchedItems = Array.isArray(ordersData) 
+        ? ordersData 
+        : (ordersData?.items || ordersData?.orders || ordersData?.data || []);
       const fetchedStats = ordersData?.statistics || {};
-      const fetchedTotal = ordersData?.metadata?.totalItems || fetchedItems.length || 0;
+      const fetchedTotal = ordersData?.metadata?.totalItems || ordersData?.total || fetchedItems.length || 0;
 
       setOrders(fetchedItems);
       setStats(fetchedStats);
@@ -162,6 +160,22 @@ export default function Orders() {
     }
   };
 
+  // Update Payment Status
+  const updatePaymentStatus = async (orderId, newPaymentStatus) => {
+    try {
+      const body = {
+        paymentStatus: newPaymentStatus,
+        notes: "payment status updated from dashboard",
+      };
+      await api.patch(`/orders/${orderId}`, body);
+      toast.success(isArabic ? "تم تحديث حالة الدفع بنجاح" : "Payment status updated successfully");
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      toast.error(isArabic ? "فشل في تحديث حالة الدفع" : "Failed to update payment status");
+    }
+  };
+
   // Get Order Details
   const fetchOrderDetails = async (orderId) => {
     try {
@@ -192,19 +206,8 @@ export default function Orders() {
     if (stats?.totalRevenue && stats.totalRevenue > 0) {
       return Math.round(stats.totalRevenue);
     }
-    // Smart estimation fallback if backend API returned 0 for sales: calculate from items
-    const sumFromItems = orders.reduce((acc, curr) => {
-      const amount = parseFloat(curr.totalAmount || curr.total || 0);
-      return acc + (isNaN(amount) ? 0 : amount);
-    }, 0);
-
-    if (sumFromItems > 0 && orders.length > 0 && computedTotalOrders > orders.length) {
-      // Estimate total store sales based on average order value across all orders
-      const avgOrderValue = sumFromItems / orders.length;
-      return Math.round(avgOrderValue * computedTotalOrders);
-    }
-    return Math.round(sumFromItems);
-  }, [dashboardOverview, stats, orders, computedTotalOrders]);
+    return 0;
+  }, [dashboardOverview, stats]);
 
   const computedTotalCustomers = useMemo(() => {
     if (dashboardOverview?.totalCustomers && dashboardOverview.totalCustomers > 0) {
@@ -213,75 +216,10 @@ export default function Orders() {
     if (stats?.totalUniqueCustomers && stats.totalUniqueCustomers > 0) {
       return stats.totalUniqueCustomers;
     }
-    // Estimate unique customers as ~75% of total orders if not provided by backend
-    if (computedTotalOrders > 0) {
-      return Math.max(1, Math.round(computedTotalOrders * 0.75));
-    }
     return 0;
-  }, [dashboardOverview, stats, computedTotalOrders]);
+  }, [dashboardOverview, stats]);
 
-  // Client-side Filtering and Sorting (100% reliable without triggering backend 400 Bad Request)
-  const filteredAndSortedOrders = useMemo(() => {
-    let result = [...orders];
 
-    // Search query filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      result = result.filter(order => 
-        (order.orderNumber && order.orderNumber.toString().toLowerCase().includes(q)) ||
-        (order.shippingAddress?.phone1 && order.shippingAddress.phone1.toString().includes(q)) ||
-        (order.shippingAddress?.title && order.shippingAddress.title.toLowerCase().includes(q)) ||
-        (order.shippingAddress?.description && order.shippingAddress.description.toLowerCase().includes(q)) ||
-        (order.customerName && order.customerName.toLowerCase().includes(q))
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      result = result.filter(order => (order.status || "").toLowerCase() === statusFilter.toLowerCase());
-    }
-
-    // Payment Method filter
-    if (paymentMethodFilter !== "all") {
-      result = result.filter(order => {
-        const method = (order.paymentMethod || "").toLowerCase();
-        if (paymentMethodFilter === "cash_on_delivery") {
-          return method === "cash_on_delivery" || method === "cod" || method.includes("cash");
-        }
-        if (paymentMethodFilter === "card") {
-          return method === "card" || method === "credit_card" || method.includes("card") || method === "online";
-        }
-        if (paymentMethodFilter === "wallet") {
-          return method === "wallet" || method.includes("wallet") || method.includes("vodafone") || method.includes("insta");
-        }
-        return method.includes(paymentMethodFilter.toLowerCase());
-      });
-    }
-
-    // Payment Status filter
-    if (paymentStatusFilter !== "all") {
-      result = result.filter(order => (order.paymentStatus || "").toLowerCase() === paymentStatusFilter.toLowerCase());
-    }
-
-    // Sort By
-    result.sort((a, b) => {
-      if (sortBy === "newest") {
-        return new Date(b.createdAt || b.id || 0) - new Date(a.createdAt || a.id || 0);
-      }
-      if (sortBy === "oldest") {
-        return new Date(a.createdAt || a.id || 0) - new Date(b.createdAt || b.id || 0);
-      }
-      if (sortBy === "highest_amount") {
-        return parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0);
-      }
-      if (sortBy === "lowest_amount") {
-        return parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0);
-      }
-      return 0;
-    });
-
-    return result;
-  }, [orders, searchQuery, statusFilter, paymentMethodFilter, paymentStatusFilter, sortBy]);
 
   // Status Badge Rendering
   const renderStatusTag = (status) => {
@@ -292,7 +230,8 @@ export default function Orders() {
       shipped: { color: "purple", labelAr: "تم الشحن", labelEn: "Shipped" },
       delivered: { color: "green", labelAr: "تم التوصيل", labelEn: "Delivered" },
       cancelled: { color: "red", labelAr: "ملغي", labelEn: "Cancelled" },
-      returned: { color: "volcano", labelAr: "مرتجـع", labelEn: "Returned" },
+      returned: { color: "volcano", labelAr: "مرتجع", labelEn: "Returned" },
+      refunded: { color: "magenta", labelAr: "مسترد", labelEn: "Refunded" },
     };
     const current = statusMap[status?.toLowerCase()] || { color: "default", labelAr: status || "-", labelEn: status || "-" };
     return (
@@ -331,23 +270,23 @@ export default function Orders() {
 
     if (s === "pending") {
       color = "warning";
-      labelAr = "معلق (لم يتم الدفع)";
+      labelAr = t("orders.pending");
       labelEn = "Pending";
     } else if (s === "paid" || s === "completed" || s === "success") {
       color = "success";
-      labelAr = "تم الدفع بنجاح";
+      labelAr = "تم الدفع بنجاح"; // Custom or can be translated
       labelEn = "Paid";
     } else if (s === "refunded" || s === "refund") {
       color = "magenta";
-      labelAr = "تم استرداد المبلغ (مرتجع - Refunded)";
+      labelAr = t("orders.refunded");
       labelEn = "Refunded";
     } else if (s === "failed" || s === "error" || s === "declined") {
       color = "error";
-      labelAr = "فشل الدفع";
+      labelAr = t("orders.failed");
       labelEn = "Failed";
     } else if (s === "cancelled" || s === "canceled") {
       color = "default";
-      labelAr = "ملغي";
+      labelAr = t("orders.cancelled");
       labelEn = "Cancelled";
     }
 
@@ -445,32 +384,48 @@ export default function Orders() {
             <span>{isArabic ? "التفاصيل" : "View Details"}</span>
           </Button>
 
-          {record.availableTransitions?.length > 0 ? (
+          <div className="flex flex-col gap-1.5">
+            {record.availableTransitions?.length > 0 ? (
+              <Select
+                size="middle"
+                placeholder={isArabic ? "تغيير حالة الطلب..." : "Change Order Status..."}
+                onChange={(value) => updateOrder(record.id, value)}
+                className="min-w-[140px] font-bold text-xs text-rose-900"
+                popupClassName="font-bold"
+              >
+                {record.availableTransitions.map((status) => (
+                  <Option key={status} value={status} className="font-bold">
+                    {isArabic 
+                      ? status === "confirmed" ? "تأكيد الطلب" 
+                      : status === "processing" ? "جاري التجهيز"
+                      : status === "shipped" ? "شحن الطلب" 
+                      : status === "delivered" ? "تم التوصيل" 
+                      : status === "cancelled" ? "إلغاء الطلب" 
+                      : status === "returned" ? "مرتجع" : status
+                      : status}
+                  </Option>
+                ))}
+              </Select>
+            ) : (
+              <Tag color="default" className="font-bold rounded-lg px-2.5 py-1 m-0 text-center block">
+                {isArabic ? "حالة نهائية للطلب" : "Final Order State"}
+              </Tag>
+            )}
+
             <Select
               size="middle"
-              placeholder={isArabic ? "تغيير الحالة..." : "Change status..."}
-              onChange={(value) => updateOrder(record.id, value)}
-              className="min-w-[130px] font-bold text-xs text-rose-900"
+              placeholder={isArabic ? "تغيير حالة الدفع..." : "Change Payment..."}
+              onChange={(value) => updatePaymentStatus(record.id, value)}
+              className="min-w-[140px] font-bold text-xs text-blue-900"
               popupClassName="font-bold"
+              value={record.paymentStatus?.toLowerCase() || undefined}
             >
-              {record.availableTransitions.map((status) => (
-                <Option key={status} value={status} className="font-bold">
-                  {isArabic 
-                    ? status === "confirmed" ? "تأكيد الطلب" 
-                    : status === "processing" ? "جاري التجهيز"
-                    : status === "shipped" ? "شحن الطلب" 
-                    : status === "delivered" ? "تم التوصيل" 
-                    : status === "cancelled" ? "إلغاء الطلب" 
-                    : status === "returned" ? "مرتجع" : status
-                    : status}
-                </Option>
-              ))}
+              <Option value="pending" className="font-bold text-yellow-600">{isArabic ? "معلق" : "Pending"}</Option>
+              <Option value="paid" className="font-bold text-green-600">{isArabic ? "تم الدفع" : "Paid"}</Option>
+              <Option value="refunded" className="font-bold text-magenta-600">{isArabic ? "مسترد" : "Refunded"}</Option>
+              <Option value="failed" className="font-bold text-red-600">{isArabic ? "فشل" : "Failed"}</Option>
             </Select>
-          ) : (
-            <Tag color="default" className="font-bold rounded-lg px-2.5 py-1 m-0">
-              {isArabic ? "حالة نهائية" : "Final State"}
-            </Tag>
-          )}
+          </div>
         </div>
       ),
     },
@@ -647,7 +602,8 @@ export default function Orders() {
                 <Option value="shipped">{isArabic ? "تم الشحن" : "Shipped"}</Option>
                 <Option value="delivered">{isArabic ? "تم التوصيل" : "Delivered"}</Option>
                 <Option value="cancelled">{isArabic ? "ملغي" : "Cancelled"}</Option>
-                <Option value="returned">{isArabic ? "مرتجـع" : "Returned"}</Option>
+                <Option value="returned">{isArabic ? "مرتجع" : "Returned"}</Option>
+                <Option value="refunded">{isArabic ? "مسترد" : "Refunded"}</Option>
               </Select>
             </div>
 
@@ -721,8 +677,8 @@ export default function Orders() {
               </h2>
               <span className="text-xs text-slate-400 font-medium">
                 {isArabic
-                  ? `عرض النتائج المصفاة (${filteredAndSortedOrders.length} طلب)`
-                  : `Showing filtered results (${filteredAndSortedOrders.length} orders)`}
+                  ? `إجمالي الطلبات (${orders.length} في هذه الصفحة)`
+                  : `Showing (${orders.length} orders on this page)`}
               </span>
             </div>
           </div>
@@ -735,7 +691,7 @@ export default function Orders() {
               {isArabic ? "جاري تحميل وتصفية سجل الطلبات الملكي..." : "Loading and filtering orders log..."}
             </span>
           </div>
-        ) : filteredAndSortedOrders.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="py-16">
             <Empty description={<span className="font-bold text-slate-400">{isArabic ? "لا توجد طلبات تطابق معايير الفلترة المحددة" : "No orders match the selected filters"}</span>}>
               <Button
@@ -750,7 +706,7 @@ export default function Orders() {
           <div className="overflow-x-auto">
             <Table
               columns={columns}
-              dataSource={filteredAndSortedOrders}
+              dataSource={orders}
               rowKey="id"
               pagination={false}
               className="overflow-x-auto"

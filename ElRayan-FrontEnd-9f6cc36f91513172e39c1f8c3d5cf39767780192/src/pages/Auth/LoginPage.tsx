@@ -12,22 +12,19 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<{
+  const { register, handleSubmit, formState: { errors }, watch, setError } = useForm<{
     identifier: string
     password: string
   }>()
 
-  const identifierVal = watch('identifier') || '';
-  const isNumericIdentifier = /^\d+$/.test(identifierVal);
 
   const onSubmit = async (data: { identifier: string; password: string }) => {
     setLoading(true)
     try {
       let id = data.identifier;
-      if (id && id.startsWith('01') && id.length === 11 && /^\d+$/.test(id)) {
+      if (/^01[0125]\d{8}$/.test(id)) {
         id = '+20' + id.substring(1);
-      } else if (id && id.startsWith('0') && !id.includes('@')) {
-        // Fallback for non-egyptian generic phones without +
+      } else if (/^\d+$/.test(id) && !id.startsWith('+')) {
         id = '+' + id;
       }
 
@@ -37,12 +34,80 @@ export default function LoginPage() {
       toast.success('أهلاً بعودتك!')
       navigate('/')
     } catch (e: any) {
-      console.error('Login Error:', e?.response?.data);
-      const resData = e?.response?.data;
-      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل تسجيل الدخول');
-      toast.error(msg)
-      if (e?.response?.status === 403) {
-        navigate('/verify-otp', { state: { email: data.identifier } })
+      try {
+        console.error('Login Error:', e?.response?.data || e);
+        const resData = e?.response?.data;
+        
+        if (resData?.errors && Array.isArray(resData.errors) && resData.errors.length > 0) {
+          let handled = false;
+          resData.errors.forEach((err: any) => {
+            if (typeof err === 'string') {
+               if (err.toLowerCase().includes('credentials') || err.toLowerCase().includes('password') || err.toLowerCase().includes('مرور')) {
+                 setError('password', { type: 'manual', message: 'كلمة المرور غير صحيحة' });
+                 toast.error('كلمة المرور غير صحيحة');
+                 handled = true;
+               } else {
+                 toast.error(err);
+                 handled = true;
+               }
+               return;
+            }
+            
+            const path = err.path?.toLowerCase() || '';
+            const msg = err.msg || err.message || '';
+            
+            if (!msg) return; // Ignore if no message to prevent empty toasts
+            
+            if (path.includes('identifier') || path.includes('phone') || msg.includes('هاتف') || msg.includes('حساب')) {
+              setError('identifier', { type: 'manual', message: msg });
+              handled = true;
+            }
+            else if (path.includes('password') || msg.includes('مرور') || msg.includes('password')) {
+              setError('password', { type: 'manual', message: msg });
+              handled = true;
+            }
+            else {
+              toast.error(msg);
+              handled = true;
+            }
+          });
+          
+          if (!handled) {
+            // Fallback if errors array was empty or had no valid strings
+            setError('password', { type: 'manual', message: 'كلمة المرور أو الحساب غير صحيح' });
+            toast.error('كلمة المرور أو الحساب غير صحيح');
+          }
+        } else {
+          let rawMsg = resData?.message;
+          if (Array.isArray(rawMsg)) rawMsg = rawMsg[0];
+          
+          const msg = (typeof rawMsg === 'string' && rawMsg.trim().length > 0) 
+            ? rawMsg 
+            : (rawMsg ? JSON.stringify(rawMsg) : 'فشل تسجيل الدخول');
+            
+          const lowerMsg = msg.toLowerCase();
+          
+          if (e?.response?.status === 401 || e?.response?.status === 400 || e?.response?.status === 404 || lowerMsg.includes('invalid credentials') || lowerMsg.includes('unauthorized') || lowerMsg.includes('credentials') || lowerMsg.includes('found')) {
+            setError('password', { type: 'manual', message: 'كلمة المرور أو الحساب غير صحيح' });
+            toast.error('كلمة المرور أو الحساب غير صحيح');
+          } else if (lowerMsg.includes('مرور') || lowerMsg.includes('password') || lowerMsg.includes('سر')) {
+            setError('password', { type: 'manual', message: msg });
+            toast.error(msg);
+          } else if (lowerMsg.includes('هاتف') || lowerMsg.includes('phone') || lowerMsg.includes('حساب') || lowerMsg.includes('user') || lowerMsg.includes('identifier')) {
+            setError('identifier', { type: 'manual', message: msg });
+            toast.error(msg);
+          } else {
+            setError('password', { type: 'manual', message: 'كلمة المرور غير صحيحة' });
+            toast.error(msg === 'فشل تسجيل الدخول' ? 'كلمة المرور غير صحيحة' : msg);
+          }
+        }
+        if (e?.response?.status === 403) {
+          navigate('/verify-otp', { state: { email: data.identifier } })
+        }
+      } catch (err2) {
+        console.error('Error handling login failure:', err2);
+        setError('password', { type: 'manual', message: 'كلمة المرور غير صحيحة' });
+        toast.error('كلمة المرور غير صحيحة');
       }
     } finally {
       setLoading(false)
@@ -69,14 +134,7 @@ export default function LoginPage() {
               <input
                 {...register('identifier', { 
                   required: 'مطلوب',
-                  onChange: (e) => {
-                    const val = e.target.value;
-                    if (/^\d+$/.test(val) && val.length > 11) {
-                      setValue('identifier', val.slice(0, 11));
-                    }
-                  }
                 })}
-                maxLength={isNumericIdentifier ? 11 : undefined}
                 placeholder="email@example.com أو الهاتف"
                 className="input"
                 autoComplete="username"
@@ -91,7 +149,7 @@ export default function LoginPage() {
               </div>
               <div className="relative">
                 <input
-                  {...register('password', { required: 'مطلوب', minLength: { value: 8, message: 'الحد الأدنى 8 أحرف أو أرقام' } })}
+                  {...register('password', { required: 'مطلوب' })}
                   type={showPass ? 'text' : 'password'}
                   placeholder="••••••••"
                   className="input pl-10"

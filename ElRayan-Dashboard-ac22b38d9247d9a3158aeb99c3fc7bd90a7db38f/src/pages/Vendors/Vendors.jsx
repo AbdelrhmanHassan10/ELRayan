@@ -23,6 +23,9 @@ export default function Vendors() {
     const { t } = useTranslation();
     const [vendors, setVendors] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
 
     const token = localStorage.getItem("token");
 
@@ -31,7 +34,7 @@ export default function Vendors() {
         setLoading(true);
         try {
             const res = await fetch(
-                "https://api.maghni.acwad.tech/api/v1/vendor?page=1&limit=10&sortOrder=ASC",
+                `https://api.maghni.acwad.tech/api/v1/vendor?page=${page}&limit=${limit}&sortOrder=ASC`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
@@ -40,6 +43,7 @@ export default function Vendors() {
             const data = await res.json();
             if (res.ok && data.success) {
                 setVendors(data.data.items);
+                setTotalItems(data.data.metadata?.totalItems || data.data.items.length);
             } else {
                 toast.error(data.message || "Failed to fetch vendors");
             }
@@ -53,7 +57,7 @@ export default function Vendors() {
 
     useEffect(() => {
         fetchVendors();
-    }, []);
+    }, [page, limit]);
 
     // ------------ DELETE ------------
     const deleteVendor = async (id) => {
@@ -261,7 +265,17 @@ export default function Vendors() {
                     dataSource={vendors}
                     columns={columns}
                     rowKey="id"
-                    pagination={{ pageSize: 10 }}
+                    pagination={{
+                        current: page,
+                        pageSize: limit,
+                        total: totalItems,
+                        onChange: (p, l) => {
+                            setPage(p);
+                            setLimit(l);
+                        },
+                        showSizeChanger: true,
+                        pageSizeOptions: ["10", "20", "50"]
+                    }}
                     className="bg-white p-4 rounded shadow overflow-x-auto"
                 />
             </Spin>

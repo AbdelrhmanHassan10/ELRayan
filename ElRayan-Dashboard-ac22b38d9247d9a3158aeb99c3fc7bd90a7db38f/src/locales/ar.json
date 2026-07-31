@@ -159,8 +159,9 @@
     "min_order_amount": "الحد الأدنى لمبلغ الطلب",
     "split_coupon": "كوبون مجزء",
     "valid_period": "فترة الصلاحية",
-    "is_stackable": "قابل للتكديس",
-    "discount_per_one": "الخصم في المره الواحده"
+    "is_stackable": "يُجمع مع خصومات أخرى",
+    "discount_per_one": "الخصم في المره الواحده",
+    "delete_confirm": "هل أنت متأكد من حذف هذا الكوبون؟"
   },
   "product_details": {
     "edit_title": "تعديل المنتج",
@@ -328,8 +329,8 @@
     "cancelled": "تم الالغاء",
     "shipped": "تم الشحن",
     "delivered": "تم التسليم",
-    "returned": "تم التباعيد",
-    "refunded": "تم استرداد "
+    "returned": "مرتجع",
+    "refunded": "مسترد"
   },
   "users": {
     "title": "إدارة المستخدمين",

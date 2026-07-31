@@ -159,8 +159,9 @@
     "min_order_amount": "Min Order Amount",
     "split_coupon": "Split Coupon",
     "valid_period": "Valid Period",
-    "is_stackable": "Is Stackable",
-    "discount_per_one": "Discount Per One Time"
+    "is_stackable": "Can Combine with other Discounts",
+    "discount_per_one": "Discount Per One Time",
+    "delete_confirm": "Are you sure you want to delete this coupon?"
   },
   "product_details": {
     "edit_title": "Edit Product",
