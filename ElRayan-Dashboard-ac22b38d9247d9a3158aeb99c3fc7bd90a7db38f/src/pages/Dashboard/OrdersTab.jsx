@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
 import {
   Row,
@@ -212,9 +212,48 @@ const OrdersTab = () => {
     [data],
   );
 
-  const ordersByStatus = data?.orderStats?.ordersByStatus || [];
-  const ordersByPayment = data?.orderStats?.ordersByPaymentStatus || [];
-  const paymentMethods = data?.orderStats?.ordersByPaymentMethod || [];
+  const formatStatusLabel = useCallback((val) => {
+    if (!val) return "";
+    if (language !== "ar") {
+      return String(val).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    }
+    const s = String(val).toLowerCase().trim();
+    if (s === "delivered" || s === "completed") return "تم التوصيل";
+    if (s === "refunded" || s === "refund") return "مسترجع";
+    if (s === "cancelled" || s === "canceled") return "ملغى";
+    if (s === "pending") return "قيد الانتظار";
+    if (s === "processing") return "قيد المعالجة";
+    if (s === "shipped") return "تم الشحن";
+    if (s === "cash_on_delivery" || s === "cod" || s.includes("cash")) return "الدفع عند الاستلام";
+    if (s === "paid") return "مدفوع";
+    if (s === "unpaid") return "غير مدفوع";
+    if (s === "card" || s === "credit_card" || s === "online") return "دفع إلكتروني";
+    return String(val).replace(/_/g, " ");
+  }, [language]);
+
+  const ordersByStatus = useMemo(() => {
+    const raw = data?.orderStats?.ordersByStatus || [];
+    return raw.map(item => ({
+      ...item,
+      label: formatStatusLabel(item.status),
+    }));
+  }, [data, formatStatusLabel]);
+
+  const ordersByPayment = useMemo(() => {
+    const raw = data?.orderStats?.ordersByPaymentStatus || [];
+    return raw.map(item => ({
+      ...item,
+      label: formatStatusLabel(item.status),
+    }));
+  }, [data, formatStatusLabel]);
+
+  const paymentMethods = useMemo(() => {
+    const raw = data?.orderStats?.ordersByPaymentMethod || [];
+    return raw.map(item => ({
+      ...item,
+      label: formatStatusLabel(item.method),
+    }));
+  }, [data, formatStatusLabel]);
 
   const productColumns = [
     {
@@ -483,7 +522,7 @@ const OrdersTab = () => {
                     <Pie
                       data={ordersByStatus}
                       dataKey="count"
-                      nameKey="status"
+                      nameKey="label"
                       cx="50%"
                       cy="50%"
                       innerRadius={50}
@@ -526,7 +565,7 @@ const OrdersTab = () => {
                           style={{ backgroundColor: color }}
                         />
                         <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
-                          {s.status}
+                          {s.label || s.status}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -574,7 +613,7 @@ const OrdersTab = () => {
                           style={{ backgroundColor: color }}
                         />
                         <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
-                          {p.status}
+                          {p.label || p.status}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -603,7 +642,7 @@ const OrdersTab = () => {
                         <Pie
                           data={paymentMethods}
                           dataKey="count"
-                          nameKey="method"
+                          nameKey="label"
                           cx="50%"
                           cy="50%"
                           innerRadius={40}
@@ -644,7 +683,7 @@ const OrdersTab = () => {
                               style={{ backgroundColor: color }}
                             />
                             <span className="font-bold text-slate-700 text-xs sm:text-sm capitalize truncate">
-                              {pm.method}
+                              {pm.label || pm.method}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -675,7 +714,7 @@ const OrdersTab = () => {
               </div>
             }
             className="shadow-sm border-slate-100 rounded-2xl flex-grow flex flex-col"
-            bodyStyle={{ flexGrow: 1, display: "flex", flexDirection: "column", padding: "16px" }}
+            styles={{ body: { flexGrow: 1, display: "flex", flexDirection: "column", padding: "16px" } }}
           >
             <div className="flex flex-col h-full gap-3 flex-grow">
               {[

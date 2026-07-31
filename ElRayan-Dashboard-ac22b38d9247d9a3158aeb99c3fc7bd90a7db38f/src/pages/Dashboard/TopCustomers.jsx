@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import api from "../../Api/Api";
 import {
     DatePicker,
     Select,
     Button,
     Table,
-    Tag,
     message,
     Spin,
     InputNumber,
@@ -29,8 +28,7 @@ import {
     Mail, 
     Crown,
     Star,
-    ShieldCheck,
-    Percent
+    ShieldCheck
 } from "lucide-react";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
@@ -50,9 +48,9 @@ export default function TopCustomers() {
     const currency = isArabic ? "ج.م" : "EGP";
 
     useEffect(() => {
-        const today = dayjs();
-        const last6Months = dayjs().subtract(6, "month");
-        const defaultRange = [last6Months, today];
+        const today = dayjs().endOf("day");
+        const startOfYear = dayjs("2026-01-01").startOf("day");
+        const defaultRange = [startOfYear, today];
         setDates(defaultRange);
         fetchData(defaultRange, limit);
     }, []);
@@ -63,31 +61,40 @@ export default function TopCustomers() {
             return;
         }
 
-        const startDate = customDates[0].format("YYYY-MM-DD");
-        const endDate = customDates[1].format("YYYY-MM-DD");
+        const startDate = customDates[0] ? customDates[0].format("YYYY-MM-DD") : "2026-01-01";
+        const endDate = customDates[1] ? customDates[1].format("YYYY-MM-DD") : "2026-12-31";
 
         try {
             setLoading(true);
-            const token = localStorage.getItem("token");
-            const res = await axios.get(
-                "https://api.elrayan.acwad.tech/api/v1/orders/top-customer",
-                {
+            let items = [];
+
+            // 1. Primary endpoint /orders/top-customer
+            try {
+                const res = await api.get("/orders/top-customer", {
                     params: { 
                         startDate, 
                         endDate, 
-                        page: 1, 
                         limit: customLimit, 
                         pageSize: customLimit, 
-                        per_page: customLimit, 
-                        size: customLimit 
-                    },
-                    headers: token ? { Authorization: `Bearer ${token}`, lang: i18n.language } : {}
-                }
-            );
-
-            if (res.data) {
-                setCustomers(res.data);
+                        take: customLimit 
+                    }
+                });
+                const raw = res.data;
+                items = Array.isArray(raw) ? raw : (Array.isArray(raw?.data) ? raw.data : (raw?.data?.topCustomers || raw?.topCustomers || []));
+            } catch (e) {
+                console.warn("Primary top-customer API failed, trying fallback", e);
             }
+
+            // 2. Fallback to /orders/dashboard
+            if (!items || items.length === 0) {
+                try {
+                    const dashRes = await api.get("/orders/dashboard");
+                    const dData = dashRes.data?.data || dashRes.data || {};
+                    items = dData?.topCustomers || [];
+                } catch(e) {}
+            }
+
+            setCustomers(items || []);
         } catch (e) {
             console.error("Failed to fetch top customers:", e);
             message.error(t("top_customers.fetch_fail") || "حدث خطأ أثناء تحميل بيانات العملاء");
@@ -103,26 +110,24 @@ export default function TopCustomers() {
 
     // Quick Date Presets
     const handleQuickPreset = (presetType) => {
-        let start, end = dayjs();
+        let start = dayjs();
+        let end = dayjs().endOf("day");
+
         if (presetType === "today") {
-            start = dayjs();
-            end = dayjs();
+            start = dayjs().startOf("day");
         } else if (presetType === "last7") {
-            start = dayjs().subtract(7, "day");
-            end = dayjs();
+            start = dayjs().subtract(7, "day").startOf("day");
         } else if (presetType === "thisMonth") {
             start = dayjs().startOf("month");
-            end = dayjs();
         } else if (presetType === "lastMonth") {
             start = dayjs().subtract(1, "month").startOf("month");
             end = dayjs().subtract(1, "month").endOf("month");
         } else if (presetType === "last6Months") {
-            start = dayjs().subtract(6, "month");
-            end = dayjs();
+            start = dayjs().subtract(6, "month").startOf("day");
         } else if (presetType === "allTime") {
-            start = dayjs().subtract(5, "year");
-            end = dayjs();
+            start = dayjs("2020-01-01").startOf("day");
         }
+
         const newRange = [start, end];
         setDates(newRange);
         fetchData(newRange, limit);
@@ -130,6 +135,7 @@ export default function TopCustomers() {
 
     // Enrich customers with VIP Tiers
     const enrichedCustomers = useMemo(() => {
+        if (!Array.isArray(customers)) return [];
         return customers.map((c, idx) => {
             let tier = "SILVER";
             let tierLabel = isArabic ? "الفئة الفضية" : "Silver Tier";
@@ -349,54 +355,7 @@ export default function TopCustomers() {
             {/* Filter Card + Quick Presets */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2 pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-500 flex items-center gap-1 me-1">
-                            <SlidersHorizontal size={14} className="text-rose-800" />
-                            {isArabic ? "فترات سريعة:" : "Quick Select:"}
-                        </span>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("today")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "اليوم" : "Today"}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("last7")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "آخر 7 أيام" : "Last 7 Days"}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("thisMonth")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "هذا الشهر" : "This Month"}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("lastMonth")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "الشهر الماضي" : "Last Month"}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("last6Months")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "آخر 6 أشهر" : "Last 6 Months"}
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleQuickPreset("allTime")}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-800 hover:text-white text-slate-700 text-xs font-bold transition-all shadow-2xs"
-                        >
-                            {isArabic ? "كل الأوقات" : "All Time"}
-                        </button>
-                    </div>
+                
 
                     {filteredCustomers.length > 0 && (
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-rose-50 text-rose-800 text-xs font-bold border border-rose-200/60">
@@ -482,7 +441,7 @@ export default function TopCustomers() {
                             icon={<Search size={16} />}
                             loading={loading}
                             onClick={() => fetchData(dates, limit)}
-                            className="h-11 px-5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold border-0 shadow-sm hover:shadow-md transition-all shrink-0"
+                            className="h-11 px-5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold border-0 shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer"
                         >
                             {t("top_customers.apply") || (isArabic ? "عرض" : "Apply")}
                         </Button>
@@ -546,8 +505,8 @@ export default function TopCustomers() {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-gray-100 bg-slate-50/50 flex items-center justify-between">
                     <div className="font-extrabold text-slate-800 flex items-center gap-2">
-                                <Crown size={18} className="text-amber-500" />
-                                <span>{t("top_customers.title") || (isArabic ? "قائمة أفضل العملاء حسب الإنفاق" : "Top Spending VIP Customers List")}</span>
+                        <Crown size={18} className="text-amber-500" />
+                        <span>{t("top_customers.title") || (isArabic ? "قائمة أفضل العملاء حسب الإنفاق" : "Top Spending VIP Customers List")}</span>
                     </div>
                     <span className="text-xs font-bold text-rose-800 bg-rose-50 px-3 py-1 rounded-lg border border-rose-200/60">
                         {isArabic ? `عرض ${filteredCustomers.length} عميل` : `Showing ${filteredCustomers.length} VIPs`}
@@ -570,7 +529,7 @@ export default function TopCustomers() {
                             <Table
                                 columns={columns}
                                 dataSource={filteredCustomers}
-                                rowKey={(r, idx) => r.userId || idx}
+                                rowKey={(record) => String(record.userId || record.id || Math.random())}
                                 pagination={{
                                     pageSize: Number(limit) || 20,
                                     showSizeChanger: true,

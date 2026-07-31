@@ -7,6 +7,32 @@ let isFetching = false;
 let fetchPromise = null;
 const fetchedSingleIds = new Set();
 
+const extractImageFromObject = (item) => {
+    if (!item) return "";
+    let img =
+        item.Image ||
+        item.image ||
+        item.images?.[0]?.attach ||
+        item.images?.[0]?.url ||
+        (typeof item.images?.[0] === "string" ? item.images[0] : "") ||
+        item.attach ||
+        item.photo ||
+        item.url ||
+        item.icon ||
+        item.img ||
+        item.product_image ||
+        item.productImage ||
+        item.product?.images?.[0]?.attach ||
+        item.product?.images?.[0]?.url ||
+        item.product?.Image ||
+        item.product?.image ||
+        "";
+    if (typeof img === "object") {
+        img = img.attach || img.url || "";
+    }
+    return typeof img === "string" ? img : "";
+};
+
 export const useProductImages = () => {
     const [imageCache, setImageCache] = useState(() => {
         if (globalImageCache) return globalImageCache;
@@ -23,7 +49,6 @@ export const useProductImages = () => {
     });
 
     useEffect(() => {
-        // If we already have a loaded cache in memory, no need to re-fetch immediately
         if (globalImageCache && Object.keys(globalImageCache).length > 0) {
             return;
         }
@@ -39,22 +64,21 @@ export const useProductImages = () => {
             isFetching = true;
             try {
                 const map = { ...(globalImageCache || {}) };
-                
-                // Fetch first batch of products (high limit to get as many as possible)
                 const res = await api.get("/product?limit=1000&sortOrder=ASC&page=1");
-                if (res.data?.success && res.data?.data?.items) {
-                    const items = res.data.data.items;
+                const items = res.data?.data?.items || res.data?.items || Array.isArray(res.data?.data) ? res.data.data : [];
+                
+                if (Array.isArray(items)) {
                     items.forEach((item) => {
-                        if (item.id && item.images?.[0]?.attach) {
-                            map[item.id] = item.images[0].attach;
+                        const img = extractImageFromObject(item);
+                        if (item.id && img) {
+                            map[item.id] = img;
                         }
                     });
 
-                    const meta = res.data.data.metadata;
-                    // If backend paginated the results, fetch remaining pages in parallel
+                    const meta = res.data?.data?.metadata || res.data?.metadata;
                     if (meta && meta.totalPages > 1 && meta.currentPage === 1) {
                         const pagePromises = [];
-                        const maxPages = Math.min(meta.totalPages, 10); // fetch up to 10 pages securely
+                        const maxPages = Math.min(meta.totalPages, 10);
                         for (let p = 2; p <= maxPages; p++) {
                             pagePromises.push(
                                 api.get(`/product?limit=${meta.itemsPerPage || 100}&sortOrder=ASC&page=${p}`).catch(() => null)
@@ -62,10 +86,12 @@ export const useProductImages = () => {
                         }
                         const responses = await Promise.all(pagePromises);
                         responses.forEach((r) => {
-                            if (r && r.data?.success && r.data?.data?.items) {
-                                r.data.data.items.forEach((item) => {
-                                    if (item.id && item.images?.[0]?.attach) {
-                                        map[item.id] = item.images[0].attach;
+                            const pItems = r?.data?.data?.items || r?.data?.items || [];
+                            if (Array.isArray(pItems)) {
+                                pItems.forEach((item) => {
+                                    const img = extractImageFromObject(item);
+                                    if (item.id && img) {
+                                        map[item.id] = img;
                                     }
                                 });
                             }
@@ -94,8 +120,9 @@ export const useProductImages = () => {
         fetchedSingleIds.add(id);
         try {
             const res = await api.get(`/product/${id}`);
-            if (res.data?.success && res.data?.data?.images?.[0]?.attach) {
-                const imgUrl = res.data.data.images[0].attach;
+            const pData = res.data?.data || res.data || {};
+            const imgUrl = extractImageFromObject(pData);
+            if (imgUrl) {
                 globalImageCache = { ...(globalImageCache || {}), [id]: imgUrl };
                 try {
                     localStorage.setItem("elrayan_product_images_cache", JSON.stringify(globalImageCache));
@@ -110,47 +137,32 @@ export const useProductImages = () => {
     const getProductImage = useCallback((record) => {
         if (!record) return "";
         
-        // Direct fields in record
-        let img =
-            record.Image ||
-            record.image ||
-            record.images?.[0]?.attach ||
-            record.images?.[0]?.url ||
-            record.images?.[0] ||
-            record.attach ||
-            record.photo ||
-            record.url ||
-            record.icon ||
-            record.img ||
-            record.product_image ||
-            record.productImage ||
-            record.product?.images?.[0]?.attach ||
-            record.product?.Image ||
-            record.product?.image ||
-            "";
+        let img = extractImageFromObject(record);
+        const prodId = record.productId || record.product_id || record.product?.id || record.id;
 
-        // Check cache if no image field found
-        if (!img && record.id && imageCache[record.id]) {
-            img = imageCache[record.id];
+        if (!img && prodId && imageCache[prodId]) {
+            img = imageCache[prodId];
         }
 
-        // If still no image and we haven't fetched this single ID yet, trigger async single fetch
-        if (!img && record.id && !imageCache[record.id] && !fetchedSingleIds.has(record.id)) {
-            fetchSingleProduct(record.id);
+        if (!img && prodId && !imageCache[prodId] && !fetchedSingleIds.has(prodId)) {
+            fetchSingleProduct(prodId);
         }
 
-        if (!img) return "";
+        if (!img || typeof img !== "string" || img.trim() === "") return "";
 
-        if (typeof img === "string") {
-            if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:")) {
-                return img;
-            }
-            if (img.startsWith("/")) {
-                return `https://api.elrayan.acwad.tech${img}`;
-            }
-            return `https://api.elrayan.acwad.tech/${img}`;
+        img = img.trim();
+
+        if (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("data:")) {
+            return img.replace(/(https?:\/\/[^\/]+)\/+/g, "$1/");
         }
-        return "";
+        if (img.includes("imagekit.io") || img.includes("ik.imagekit.io")) {
+            const clean = `https://${img.replace(/^https?:\/\//, "").replace(/^\/+/, "")}`;
+            return clean.replace(/(https?:\/\/[^\/]+)\/+/g, "$1/");
+        }
+        if (img.startsWith("/")) {
+            return `https://api.elrayan.acwad.tech${img}`.replace(/(https?:\/\/[^\/]+)\/+/g, "$1/");
+        }
+        return `https://api.elrayan.acwad.tech/${img}`.replace(/(https?:\/\/[^\/]+)\/+/g, "$1/");
     }, [imageCache, fetchSingleProduct]);
 
     return { imageCache, getProductImage };
