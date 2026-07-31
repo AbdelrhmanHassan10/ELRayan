@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { MapPin, CreditCard, FileText, CheckCircle } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCart } from '../../contexts/CartContext'
 import { ordersApi } from '../../api/orders'
 import { addressesApi } from '../../api/addresses'
@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_on_delivery')
 
+  const queryClient = useQueryClient()
   const { register, handleSubmit, formState: { errors } } = useForm<{ phone1: string; phone2?: string; notes?: string }>()
 
   const { data: addressRes } = useQuery({
@@ -101,7 +102,13 @@ export default function CheckoutPage() {
                     {addresses.map((addr: any) => (
                       <label 
                         key={addr.id} 
-                        onClick={() => setSelectedAddress(addr.id)}
+                        onClick={() => {
+                          setSelectedAddress(addr.id)
+                          addressesApi.setDefault(addr.id).then(() => {
+                            queryClient.invalidateQueries({ queryKey: ['addresses'] })
+                            fetchCart()
+                          }).catch(() => {})
+                        }}
                         className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${Number(activeAddressId) === Number(addr.id) ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
                       >
                         <input
@@ -109,7 +116,13 @@ export default function CheckoutPage() {
                           name="address"
                           className="mt-0.5 text-primary"
                           checked={Number(activeAddressId) === Number(addr.id)}
-                          onChange={() => setSelectedAddress(addr.id)}
+                          onChange={() => {
+                            setSelectedAddress(addr.id)
+                            addressesApi.setDefault(addr.id).then(() => {
+                              queryClient.invalidateQueries({ queryKey: ['addresses'] })
+                              fetchCart()
+                            }).catch(() => {})
+                          }}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-gray-900">{addr.title || addr.type}</p>

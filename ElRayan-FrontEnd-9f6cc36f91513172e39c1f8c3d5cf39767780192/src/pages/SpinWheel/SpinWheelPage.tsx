@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rewardsApi } from '../../api/rewards'
 import type { SpinResult } from '../../types'
 import toast from 'react-hot-toast'
@@ -43,6 +43,7 @@ const COLORS = [
 ]
 
 export default function SpinWheelPage() {
+  const queryClient = useQueryClient()
   const [spinning, setSpinning] = useState(false)
   const [rotation, setRotation] = useState(0)
   const [result, setResult] = useState<SpinResult | null>(null)
@@ -61,13 +62,11 @@ export default function SpinWheelPage() {
   else if (Array.isArray((rawData as any)?.data?.data)) rewards = (rawData as any).data.data;
 
   // These should be returned by the backend in metadata or directly. 
-  // We handle both possibilities and default to active/1 if undefined to prevent breaking before backend update.
   const metadata = (rawData as any)?.metadata || (rawData as any)?.meta || (rawData as any)?.data?.meta;
   const attempts = metadata?.attempts ?? (rawData as any)?.attempts ?? 0;
   const isWheelActive = metadata?.isActive ?? (rawData as any)?.isActive ?? true;
 
   // Use exactly the segments returned by the backend. 
-  // If backend returns nothing, fallback to 8 dummy segments so the wheel doesn't crash.
   const segments = rewards.length > 0 ? rewards : Array.from({ length: 8 }, (_, i) => ({ id: `dummy-${i}`, displayText: `جائزة ${i + 1}` }))
   const segmentAngle = 360 / segments.length
 
@@ -75,6 +74,9 @@ export default function SpinWheelPage() {
     mutationFn: () => rewardsApi.spin(),
     onSuccess: (res) => {
       const spinResult = res.data.data
+
+      // Refresh attempts immediately from backend so the UI updates to show 1 attempt consumed
+      queryClient.invalidateQueries({ queryKey: ['rewards-active'] })
 
       // Find the winning segment (first occurrence)
       const winIndex = segments.findIndex((s: any) => s.id === spinResult.reward.id)
@@ -146,7 +148,7 @@ export default function SpinWheelPage() {
                   <h3 className="font-bold text-lg mb-1">العجلة متوقفة حالياً</h3>
                   <p className="text-sm">لقد تم إيقاف عجلة الحظ مؤقتاً من قبل الإدارة. يرجى العودة لاحقاً!</p>
                 </div>
-              ) : typeof attempts === 'number' && attempts <= 0 ? (
+              ) : (typeof attempts === 'number' && attempts <= 0 && !spinning) ? (
                 <div className="bg-gray-50 text-gray-800 p-5 rounded-2xl border border-gray-200">
                   <Gift className="w-12 h-12 text-amber-500 mx-auto lg:mx-0 mb-3 opacity-80" />
                   <h3 className="font-bold text-xl mb-2">ليس لديك محاولات!</h3>
@@ -161,7 +163,7 @@ export default function SpinWheelPage() {
                 <div className="space-y-4">
                   {typeof attempts === 'number' && (
                     <div className="bg-amber-50 text-amber-700 py-2.5 px-5 rounded-xl inline-flex items-center justify-center font-bold text-lg border border-amber-200/50 w-full lg:w-auto">
-                      لديك ({attempts}) محاولات متبقية
+                      لديك ({spinning ? Math.max(0, attempts - 1) : attempts}) محاولات متبقية
                     </div>
                   )}
                   <button

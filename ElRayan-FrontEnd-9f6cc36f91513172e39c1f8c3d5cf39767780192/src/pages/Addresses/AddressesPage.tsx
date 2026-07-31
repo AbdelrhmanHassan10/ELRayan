@@ -6,6 +6,7 @@ import { addressesApi } from '../../api/addresses'
 import type { CreateAddressPayload, AddressType, Zone } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmModal from '../../components/ConfirmModal'
+import { useCart } from '../../contexts/CartContext'
 import 'leaflet/dist/leaflet.css'
 
 const ADDRESS_TYPE_LABELS: Record<AddressType, string> = {
@@ -145,6 +146,7 @@ export default function AddressesPage() {
   })
   const addresses = data?.data?.data ?? []
 
+  const { fetchCart } = useCart()
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateAddressPayload & { type: AddressType }>({
     defaultValues: { type: 'home' },
   })
@@ -153,6 +155,7 @@ export default function AddressesPage() {
     mutationFn: (d: CreateAddressPayload) => addressesApi.create(d),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      fetchCart()
       reset()
       setShowForm(false)
       setCoords(null)
@@ -166,6 +169,7 @@ export default function AddressesPage() {
       addressesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      fetchCart()
       reset()
       setEditId(null)
       setShowForm(false)
@@ -179,6 +183,7 @@ export default function AddressesPage() {
     mutationFn: (id: number) => addressesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      fetchCart()
       toast.success('تم حذف العنوان')
     },
     onError: () => toast.error('فشل الحذف'),
@@ -188,6 +193,7 @@ export default function AddressesPage() {
     mutationFn: (id: number) => addressesApi.setDefault(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
+      fetchCart()
       toast.success('تم تحديث العنوان الافتراضي')
     },
   })
