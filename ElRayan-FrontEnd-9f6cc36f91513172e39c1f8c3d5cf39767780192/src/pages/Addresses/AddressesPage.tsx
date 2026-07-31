@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2, MapPin, Star, Edit2, X, Check, Navigation } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { addressesApi } from '../../api/addresses'
-import type { CreateAddressPayload, AddressType } from '../../types'
+import type { CreateAddressPayload, AddressType, Zone } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmModal from '../../components/ConfirmModal'
 import 'leaflet/dist/leaflet.css'
@@ -48,9 +48,14 @@ function MapPicker({ initialLat, initialLng, onSelect }: MapPickerProps) {
   }
 
   useEffect(() => {
+    let isMounted = true
     if (!mapRef.current || leafletMap.current) return
 
     import('leaflet').then(L => {
+      if (!isMounted || !mapRef.current) return
+      
+      const container = mapRef.current as any
+      if (container._leaflet_id) return // Prevent double initialization
       // Fix default marker icons
       delete (L.Icon.Default.prototype as any)._getIconUrl
       L.Icon.Default.mergeOptions({
@@ -94,6 +99,7 @@ function MapPicker({ initialLat, initialLng, onSelect }: MapPickerProps) {
     })
 
     return () => {
+      isMounted = false
       leafletMap.current?.remove()
       leafletMap.current = null
     }
@@ -115,13 +121,6 @@ function MapPicker({ initialLat, initialLng, onSelect }: MapPickerProps) {
     <div className="space-y-2">
       <div className="flex items-center justify-between mb-1">
         <label className="block text-sm font-medium text-gray-700">الموقع على الخريطة *</label>
-        <button
-          type="button"
-          onClick={locateMe}
-          className="flex items-center gap-1 text-xs text-primary hover:underline"
-        >
-          <Navigation className="w-3 h-3" /> موقعي الحالي
-        </button>
       </div>
       <div ref={mapRef} className="w-full h-56 rounded-xl border border-gray-200 z-0" style={{ direction: 'ltr' }} />
       {address && (
@@ -325,7 +324,11 @@ export default function AddressesPage() {
                   {addr.isDefault && <span className="badge bg-primary/10 text-primary text-xs">الافتراضي</span>}
                 </div>
                 {addr.description && <p className="text-sm text-gray-400 mt-0.5 truncate">{addr.description}</p>}
-                {addr.zone && <p className="text-xs text-primary mt-0.5">المنطقة: {addr.zone.name} • الشحن: {addr.zone.shippingCost} ج.م</p>}
+                {(addr.shippingCost !== undefined || addr.zone?.shippingCost !== undefined) && (
+                  <p className="text-xs text-primary mt-0.5">
+                    {addr.zone ? `المنطقة: ${addr.zone.name} • ` : ''}الشحن: {addr.shippingCost ?? addr.zone?.shippingCost} ج.م
+                  </p>
+                )}
                 {addr.latitude && addr.longitude && (
                   <p className="text-xs text-gray-300 mt-0.5">{Number(addr.latitude).toFixed(4)}, {Number(addr.longitude).toFixed(4)}</p>
                 )}

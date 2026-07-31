@@ -240,6 +240,7 @@ export interface Address {
   longitude?: number
   isDefault: boolean
   zone?: Zone
+  shippingCost?: number
   createdAt: string
   updatedAt: string
 }

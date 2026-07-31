@@ -36,10 +36,14 @@ export default function CheckoutPage() {
   const items = cart.items ?? []
 
   const defaultAddr = addresses.find((a: any) => a.isDefault)
-  const shippingRaw = selectedAddress
-    ? addresses.find((a: any) => a.id === selectedAddress)?.zone?.shippingCost ?? cart.shippingAmount
-    : defaultAddr?.zone?.shippingCost ?? cart.shippingAmount
-  const shipping = Number(shippingRaw || 0)
+  const activeAddressId = selectedAddress ?? defaultAddr?.id
+  const activeAddress = addresses.find((a: any) => Number(a.id) === Number(activeAddressId))
+  
+  const shipping = activeAddress?.shippingCost !== undefined && activeAddress?.shippingCost !== null
+    ? Number(activeAddress.shippingCost)
+    : (activeAddress?.zone?.shippingCost !== undefined && activeAddress?.zone?.shippingCost !== null
+      ? Number(activeAddress.zone.shippingCost)
+      : Number(cart.shippingAmount || 0))
 
   const cartSubtotal = Number(cart.subtotal || 0)
   const cartDiscount = Number(cart.discountAmount || 0)
@@ -95,18 +99,24 @@ export default function CheckoutPage() {
                   <p className="text-sm text-gray-600 mb-2">اختر عنواناً محفوظاً:</p>
                   <div className="space-y-2">
                     {addresses.map((addr: any) => (
-                      <label key={addr.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${selectedAddress === addr.id || (!selectedAddress && addr.isDefault) ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                      <label 
+                        key={addr.id} 
+                        onClick={() => setSelectedAddress(addr.id)}
+                        className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${Number(activeAddressId) === Number(addr.id) ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}
+                      >
                         <input
                           type="radio"
                           name="address"
                           className="mt-0.5 text-primary"
-                          checked={selectedAddress === addr.id || (!selectedAddress && addr.isDefault)}
+                          checked={Number(activeAddressId) === Number(addr.id)}
                           onChange={() => setSelectedAddress(addr.id)}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm text-gray-900">{addr.title || addr.type}</p>
                           {addr.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{addr.description}</p>}
-                          {addr.zone && <p className="text-xs text-primary mt-0.5">الشحن: {addr.zone.shippingCost} ج.م</p>}
+                          {(addr.shippingCost !== undefined || addr.zone?.shippingCost !== undefined) && (
+                            <p className="text-xs text-primary mt-0.5">الشحن: {addr.shippingCost ?? addr.zone?.shippingCost} ج.م</p>
+                          )}
                           {addr.isDefault && <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full mt-1">الافتراضي</span>}
                         </div>
                       </label>
