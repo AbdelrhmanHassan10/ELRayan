@@ -18,7 +18,7 @@ export default function ProfilePage() {
     defaultValues: {
       fullName: user?.fullName ?? '',
       phoneNumber: user?.phoneNumber ?? '',
-      gender: user?.gender ?? '',
+      gender: user?.gender?.toUpperCase() ?? '',
     },
   })
 
@@ -27,7 +27,7 @@ export default function ProfilePage() {
       resetProfile({
         fullName: user.fullName ?? '',
         phoneNumber: user.phoneNumber ?? '',
-        gender: user.gender ?? '',
+        gender: user.gender?.toUpperCase() ?? '',
       })
     }
   }, [user, resetProfile])
@@ -44,18 +44,33 @@ export default function ProfilePage() {
     try {
 
       const payload: any = { fullName: data.fullName };
-      // NOTE: Backend currently rejects `gender`.
-      if (data.gender) payload.gender = data.gender;
+      
+      // The backend DTO does not allow updating gender at the moment. 
+      // Sending it causes a 'property gender should not exist' error.
+      // if (data.gender) payload.gender = data.gender.toUpperCase();
 
       await authApi.editProfile(payload)
       
       await refreshUser()
       toast.success('تم تحديث الملف الشخصي!')
     } catch (e: any) {
-      console.error('Profile Edit Error:', e?.response?.data);
       const resData = e?.response?.data;
-      const msg = Array.isArray(resData?.message) ? resData.message.join(' | ') : (resData?.message ?? 'فشل تحديث الملف الشخصي');
-      toast.error(msg)
+      console.error('Profile Edit Error Details:', JSON.stringify(resData?.errors));
+      
+      let msg = resData?.message ?? 'فشل تحديث الملف الشخصي';
+      if (resData?.errors && Array.isArray(resData.errors)) {
+        msg = resData.errors.map((err: any) => {
+          if (typeof err === 'string') return err;
+          if (err.constraints) return Object.values(err.constraints).join(' و ');
+          if (err.message) return err.message;
+          if (err.msg) return err.msg;
+          return JSON.stringify(err);
+        }).join(' | ');
+      } else if (resData?.errors) {
+        msg = Object.values(resData.errors).flat().join(' | ');
+      }
+      
+      toast.error(`الخطأ: ${msg}`);
     } finally {
       setSaving(false)
     }
@@ -179,8 +194,8 @@ export default function ProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">الجنس</label>
             <select {...regProfile('gender')} className="input">
               <option value="">أفضل عدم الإفصاح</option>
-              <option value="male">ذكر</option>
-              <option value="female">أنثى</option>
+              <option value="MALE">ذكر</option>
+              <option value="FEMALE">أنثى</option>
             </select>
           </div>
 
